@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+    /* Theme CSS Variables - Light Mode */
+    --bg-canvas: #FAF9F6;
+    --bg-surface: #FFFFFF;
+    --bg-surface-muted: #F8FAFC;
+    --bg-surface-elevated: #FFFFFF;
+    --bg-input: #FFFFFF;
+    --bg-header: rgba(255, 255, 255, 0.95);
+
+    --border-subtle: rgba(226, 232, 240, 0.8);
+    --border-default: #E2E8F0;
+    --border-card: rgba(226, 232, 240, 0.9);
+    --border-accent: rgba(245, 158, 11, 0.4);
+
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --text-inverse: #FFFFFF;
+
+    /* Vibrant Cultural Accent Colors (Preserved across Light and Dark) */
+    --accent-red: #DC2626;
+    --accent-red-hover: #B91C1C;
+    --accent-red-subtle: #FEF2F2;
+    --accent-red-border: #FECACA;
+    --accent-red-text: #991B1B;
+
+    --accent-amber: #D97706;
+    --accent-amber-hover: #B45309;
+    --accent-amber-subtle: #FFFBEB;
+    --accent-amber-border: #FDE68A;
+    --accent-amber-text: #92400E;
+
+    --accent-emerald: #059669;
+    --accent-emerald-subtle: #ECFDF5;
+    --accent-emerald-border: #A7F3D0;
+    --accent-emerald-text: #065F46;
+
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.07);
+  }
+
+  /* Theme CSS Variables - Dark Mode */
+  html.dark,
+  [data-theme="dark"] {
+    --bg-canvas: #0B0F19;
+    --bg-surface: #111827;
+    --bg-surface-muted: #1A2234;
+    --bg-surface-elevated: #1F293D;
+    --bg-input: #151D2C;
+    --bg-header: rgba(17, 24, 39, 0.95);
+
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-default: rgba(255, 255, 255, 0.12);
+    --border-card: rgba(255, 255, 255, 0.1);
+    --border-accent: rgba(245, 158, 11, 0.35);
+
+    --text-primary: #F8FAFC;
+    --text-secondary: #CBD5E1;
+    --text-muted: #94A3B8;
+    --text-inverse: #0F172A;
+
+    /* Distinctive Cultural Accents maintained with enhanced optical contrast */
+    --accent-red: #EF4444;
+    --accent-red-hover: #DC2626;
+    --accent-red-subtle: rgba(239, 68, 68, 0.15);
+    --accent-red-border: rgba(239, 68, 68, 0.3);
+    --accent-red-text: #FCA5A5;
+
+    --accent-amber: #F59E0B;
+    --accent-amber-hover: #D97706;
+    --accent-amber-subtle: rgba(245, 158, 11, 0.16);
+    --accent-amber-border: rgba(245, 158, 11, 0.35);
+    --accent-amber-text: #FDE68A;
+
+    --accent-emerald: #10B981;
+    --accent-emerald-subtle: rgba(16, 185, 129, 0.15);
+    --accent-emerald-border: rgba(16, 185, 129, 0.3);
+    --accent-emerald-text: #6EE7B7;
+
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+    --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.45);
+  }
+  
+  html, body {
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* Smooth CSS variable theme transition utility */
+.theme-animated,
+.theme-animated * {
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Custom scrollbar for mobile chat with dark mode adaptation */
+.chat-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 9999px;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Bottom safe area for mobile navigation */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}

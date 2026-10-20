@@ -1,0 +1,6 @@
+{
+  "name": "Ganesh Mitra Mandali - H. Hosahalli",
+  "description": "Official community mobile & web platform for Ganesh Mitra Mandali, H. Hosahalli. Real-time chat, member directory, democratic polls, announcements, issue reporting, and emergency response.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

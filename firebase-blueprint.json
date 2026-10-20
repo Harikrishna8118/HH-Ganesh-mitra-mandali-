@@ -1,0 +1,284 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account record associated with mobile identity or authentication",
+      "type": "object",
+      "properties": {
+        "mobileNumber": { "type": "string", "pattern": "^[0-9]{10}$" },
+        "role": { "type": "string", "enum": ["public", "member", "admin"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["mobileNumber", "role", "createdAt"]
+    },
+    "Profile": {
+      "title": "Profile",
+      "description": "Public and member directory profile information",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "mobileNumber": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "bio": { "type": "string", "maxLength": 500 },
+        "villageAddress": { "type": "string", "maxLength": 200 },
+        "isPhonePublic": { "type": "boolean" },
+        "joinedAt": { "type": "string" },
+        "role": { "type": "string", "enum": ["member", "admin"] }
+      },
+      "required": ["userId", "fullName", "isPhonePublic", "joinedAt"]
+    },
+    "JoinRequest": {
+      "title": "JoinRequest",
+      "description": "Membership application pending administrator approval",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "mobileNumber": { "type": "string", "pattern": "^[0-9]{10}$" },
+        "photoUrl": { "type": "string" },
+        "villageAddress": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "adminNote": { "type": "string", "maxLength": 300 },
+        "isPhonePublic": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["fullName", "mobileNumber", "status", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time WhatsApp-style group communication messages",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "senderRole": { "type": "string" },
+        "text": { "type": "string", "maxLength": 2000 },
+        "replyToId": { "type": "string" },
+        "replyToText": { "type": "string", "maxLength": 300 },
+        "replyToSender": { "type": "string", "maxLength": 100 },
+        "isDeleted": { "type": "boolean" },
+        "isAnnouncement": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["senderId", "senderName", "text", "createdAt"]
+    },
+    "Discussion": {
+      "title": "Discussion",
+      "description": "Structured mandali committee matters and festival topics",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string" },
+        "description": { "type": "string", "maxLength": 2000 },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "isPinned": { "type": "boolean" },
+        "isClosed": { "type": "boolean" },
+        "replyCount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "category", "description", "authorId", "authorName", "createdAt"]
+    },
+    "DiscussionReply": {
+      "title": "DiscussionReply",
+      "description": "Replies to a specific discussion topic",
+      "type": "object",
+      "properties": {
+        "discussionId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "text": { "type": "string", "maxLength": 1500 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["discussionId", "authorId", "authorName", "text", "createdAt"]
+    },
+    "Poll": {
+      "title": "Poll",
+      "description": "Group decisions and voting poll",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string", "maxLength": 250 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "createdBy": { "type": "string" },
+        "authorName": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "closed"] },
+        "deadline": { "type": "string" },
+        "totalVotes": { "type": "number" },
+        "options": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["question", "createdBy", "status", "deadline", "createdAt"]
+    },
+    "PollVote": {
+      "title": "PollVote",
+      "description": "Individual member vote cast for an option",
+      "type": "object",
+      "properties": {
+        "pollId": { "type": "string" },
+        "optionId": { "type": "string" },
+        "userId": { "type": "string" },
+        "votedAt": { "type": "string" }
+      },
+      "required": ["pollId", "optionId", "userId", "votedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Official broadcast announcements and schedules from administrators",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 3000 },
+        "category": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "content", "authorId", "authorName", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app alerts and notifications for users",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "link": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "message", "type", "isRead", "createdAt"]
+    },
+    "IssueReport": {
+      "title": "IssueReport",
+      "description": "Community problem and issue reports",
+      "type": "object",
+      "properties": {
+        "reportedBy": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterPhone": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string" },
+        "description": { "type": "string", "maxLength": 1500 },
+        "imageUrl": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "status": { "type": "string", "enum": ["open", "in_progress", "resolved"] },
+        "adminResponse": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["reportedBy", "reporterName", "title", "category", "description", "priority", "status", "createdAt"]
+    },
+    "EmergencyReport": {
+      "title": "EmergencyReport",
+      "description": "Urgent high-priority incident reporting",
+      "type": "object",
+      "properties": {
+        "reportedBy": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterPhone": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string", "maxLength": 1000 },
+        "photoUrl": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "priority": { "type": "string" },
+        "resolvedBy": { "type": "string" },
+        "resolutionNotes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "resolvedAt": { "type": "string" }
+      },
+      "required": ["reportedBy", "reporterName", "category", "description", "isActive", "createdAt"]
+    },
+    "AppSettings": {
+      "title": "AppSettings",
+      "description": "Mandali configuration and custom branding",
+      "type": "object",
+      "properties": {
+        "mandaliName": { "type": "string" },
+        "villageName": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "bannerText": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["mandaliName", "villageName", "updatedAt"]
+    },
+    "AdminAction": {
+      "title": "AdminAction",
+      "description": "Audit trail of administrator actions",
+      "type": "object",
+      "properties": {
+        "adminId": { "type": "string" },
+        "adminName": { "type": "string" },
+        "actionType": { "type": "string" },
+        "targetEntity": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["adminId", "adminName", "actionType", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user authentication and authorization details"
+    },
+    "/profiles/{profileId}": {
+      "schema": "Profile",
+      "description": "Public approved member roster and contact profiles"
+    },
+    "/join_requests/{requestId}": {
+      "schema": "JoinRequest",
+      "description": "Pending membership registration applications"
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Community live group chat feed"
+    },
+    "/discussions/{discussionId}": {
+      "schema": "Discussion",
+      "description": "Organized mandali topics and arrangements"
+    },
+    "/discussions/{discussionId}/replies/{replyId}": {
+      "schema": "DiscussionReply",
+      "description": "Threaded replies to a discussion topic"
+    },
+    "/polls/{pollId}": {
+      "schema": "Poll",
+      "description": "Democratic votes and decision records"
+    },
+    "/polls/{pollId}/votes/{voteId}": {
+      "schema": "PollVote",
+      "description": "Cast votes by mandali members"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Official notices and festival programs"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System and community notification queue"
+    },
+    "/issue_reports/{issueId}": {
+      "schema": "IssueReport",
+      "description": "Tracked village and mandali issues"
+    },
+    "/emergency_reports/{emergencyId}": {
+      "schema": "EmergencyReport",
+      "description": "High-priority crisis alerts"
+    },
+    "/app_settings/{settingId}": {
+      "schema": "AppSettings",
+      "description": "Global mandali identity, village name, and custom logo"
+    },
+    "/admin_actions/{actionId}": {
+      "schema": "AdminAction",
+      "description": "Secure audit log of administrative decisions"
+    }
+  }
+}

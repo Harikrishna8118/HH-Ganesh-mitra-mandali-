@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Admins collection
+    match /admins/{adminUid} {
+      allow read, write: if true;
+    }
+
+    // Global Mandali & Village App Settings (All members can view & update)
+    match /app_settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // Public & Member Directory (All members can view & update)
+    match /profiles/{profileId} {
+      allow read, write: if true;
+    }
+
+    // Membership Registration Requests (All members can approve/reject)
+    match /join_requests/{requestId} {
+      allow read, write: if true;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Official Mandali Announcements (All members can publish/delete)
+    match /announcements/{announcementId} {
+      allow read, write: if true;
+    }
+
+    // Real-Time Group Chat Messages (All members can chat and moderate)
+    match /chat_messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    // Topic Discussions & Committee Matters (All members can start & manage)
+    match /discussions/{discussionId} {
+      allow read, write: if true;
+
+      match /replies/{replyId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Group Decisions & Democratic Polls (All members can create, vote & close)
+    match /polls/{pollId} {
+      allow read, write: if true;
+
+      match /votes/{voteId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Member Issue Reports (All members can report and update status)
+    match /issue_reports/{issueId} {
+      allow read, write: if true;
+    }
+
+    // High-Priority Emergency Incidents (All members can broadcast & resolve)
+    match /emergency_reports/{emergencyId} {
+      allow read, write: if true;
+    }
+
+    // Member Notification Queue
+    match /notifications/{notificationId} {
+      allow read, write: if true;
+    }
+
+    // Community Management Audit Logs
+    match /admin_actions/{actionId} {
+      allow read, write: if true;
+    }
+  }
+}
