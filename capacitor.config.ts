@@ -1,4 +1,17 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+export interface CapacitorConfig {
+  appId: string;
+  appName: string;
+  webDir: string;
+  server?: {
+    androidScheme?: string;
+    cleartext?: boolean;
+  };
+  android?: {
+    allowMixedContent?: boolean;
+    captureInput?: boolean;
+    webContentsDebuggingEnabled?: boolean;
+  };
+}
 
 const config: CapacitorConfig = {
   appId: 'org.hosahalli.ganeshmitramandali',

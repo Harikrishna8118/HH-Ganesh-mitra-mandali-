@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="ganeshGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DC2626" />
+      <stop offset="60%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <radialGradient id="auraGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FEF3C7" stop-opacity="0.9" />
+      <stop offset="70%" stop-color="#FDE68A" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#FEF3C7" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background Aura -->
+  <circle cx="60" cy="60" r="54" fill="url(#auraGlow)" />
+  <circle cx="60" cy="60" r="50" stroke="#F59E0B" stroke-width="2" stroke-dasharray="3 3" opacity="0.6" />
+
+  <!-- Crown / Mukut -->
+  <path d="M52 24 L60 14 L68 24 L65 34 L55 34 Z" fill="url(#ganeshGrad)" stroke="#B91C1C" stroke-width="1.5" stroke-linejoin="round" />
+  <circle cx="60" cy="20" r="2.5" fill="#FDE68A" stroke="#B45309" stroke-width="1" />
+
+  <!-- Sacred Tilak / Namam on Forehead -->
+  <path d="M57 32 Q60 36 63 32" stroke="#DC2626" stroke-width="2" stroke-linecap="round" fill="none" />
+  <circle cx="60" cy="30" r="1.5" fill="#DC2626" />
+  <path d="M55 28 Q60 31 65 28" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" fill="none" />
+
+  <!-- Divine Face & Ears (Minimalist sacred contours) -->
+  <!-- Left Ear -->
+  <path d="M46 38 C34 38 32 54 44 60 C46 61 48 56 48 50 C48 44 47 40 46 38 Z" fill="url(#ganeshGrad)" opacity="0.9" />
+  <!-- Right Ear & Broken Tusk -->
+  <path d="M74 38 C86 38 88 54 76 60 C74 61 72 56 72 50 C72 44 73 40 74 38 Z" fill="url(#ganeshGrad)" opacity="0.9" />
+
+  <!-- Head and Graceful Curved Trunk (Vakratunda) -->
+  <path d="M52 38 C52 36 68 36 68 38 C70 48 68 56 66 64 C64 74 65 82 72 84 C76 85 79 82 78 77 C77 74 74 74 73 76 C72 78 70 77 69 73 C68 68 67 60 70 52 C71 48 68 44 60 44 C54 44 52 48 52 54 C52 64 56 76 54 84 C52 92 42 92 40 84 C39 78 44 76 46 80 C47 82 49 82 50 78 C51 72 48 60 49 48 Z" fill="url(#ganeshGrad)" />
+
+  <!-- Modak in Left Hand / Offering -->
+  <path d="M75 72 C77 68 83 68 85 72 C86 75 84 79 80 80 C76 79 74 75 75 72 Z" fill="#F59E0B" stroke="#B45309" stroke-width="1.5" />
+  <circle cx="80" cy="74" r="1.5" fill="#FEF3C7" />
+
+  <!-- Divine Trishul / Om Accent Markings -->
+  <circle cx="60" cy="46" r="2" fill="#FEF3C7" />
+  <path d="M48 68 L43 72" stroke="#DC2626" stroke-width="2" stroke-linecap="round" />
+</svg>

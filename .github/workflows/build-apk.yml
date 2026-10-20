@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  PROJECT_ROOT: ${{ github.workspace }}
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -43,10 +46,19 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
+      - name: Verify Gradle path and runner architecture
+        run: |
+          echo "Runner architecture: $(uname -m)"
+          echo "Gradle binary location:"
+          which gradle || echo "gradle not yet on PATH"
+          gradle --version
+          echo "Root workspace directory: $GITHUB_WORKSPACE"
+
       - name: Create temporary debug keystore
         run: |
+          cd "$GITHUB_WORKSPACE"
           if [ ! -f "./debug.keystore" ]; then
-            echo "Generating temporary debug keystore..."
+            echo "Generating temporary debug keystore at $GITHUB_WORKSPACE/debug.keystore..."
             keytool -genkey -v \
               -keystore ./debug.keystore \
               -alias androiddebugkey \
@@ -61,13 +73,31 @@ jobs:
             echo "Error: Failed to create ./debug.keystore"
             exit 1
           fi
-          echo "Debug keystore created successfully."
+          mkdir -p ~/.android
+          cp ./debug.keystore ~/.android/debug.keystore
+          echo "Debug keystore verified at $GITHUB_WORKSPACE/debug.keystore and ~/.android/debug.keystore"
 
       - name: Build the debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME || '/usr/local/lib/android/sdk' }}
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          # Establish local.properties for cross-runner architecture SDK location
+          if [ -d "$ANDROID_HOME" ]; then
+            echo "sdk.dir=$ANDROID_HOME" > local.properties
+          elif [ -d "/usr/local/lib/android/sdk" ]; then
+            echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+          fi
+          echo "local.properties:"
+          cat local.properties || true
+
+          echo "Running assembleDebug from root directory: $(pwd)"
+          gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Verify the APK
         run: |
+          cd "$GITHUB_WORKSPACE"
           TARGET_APK="app/build/outputs/apk/debug/app-debug.apk"
           if [ ! -f "$TARGET_APK" ]; then
             echo "Target APK not found at: $TARGET_APK"
@@ -97,6 +127,7 @@ jobs:
       - name: Prepare APK release asset
         id: prep-asset
         run: |
+          cd "$GITHUB_WORKSPACE"
           TMP_DIR=$(mktemp -d)
           cp app/build/outputs/apk/debug/app-debug.apk "${TMP_DIR}/app-debug.apk"
           echo "asset_path=${TMP_DIR}/app-debug.apk" >> $GITHUB_OUTPUT
