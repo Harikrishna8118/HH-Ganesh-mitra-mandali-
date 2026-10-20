@@ -864,7 +864,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   ? 'Add a caption for this photo/video (optional)...'
                   : 'Type a message or tap 🎤 to record voice note...'
               }
-              className="flex-1 text-xs sm:text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-slate-50/50"
+              enterKeyHint="send"
+              autoComplete="off"
+              className="flex-1 text-xs sm:text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
             />
 
             <button

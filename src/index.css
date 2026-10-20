@@ -95,6 +95,34 @@
     color: var(--text-primary);
     transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
+
+  /* Universal Form Input Text Visibility & High Contrast Fix for Android WebViews */
+  input, textarea, select {
+    color: #0F172A !important;
+    background-color: #FFFFFF !important;
+    -webkit-text-fill-color: #0F172A !important;
+    caret-color: #DC2626 !important;
+    font-size: 14px;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #94A3B8 !important;
+    -webkit-text-fill-color: #94A3B8 !important;
+  }
+
+  html.dark input, html.dark textarea, html.dark select,
+  [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select {
+    color: #F8FAFC !important;
+    background-color: #1E293B !important;
+    -webkit-text-fill-color: #F8FAFC !important;
+    caret-color: #F59E0B !important;
+  }
+
+  html.dark input::placeholder, html.dark textarea::placeholder,
+  [data-theme="dark"] input::placeholder, [data-theme="dark"] textarea::placeholder {
+    color: #64748B !important;
+    -webkit-text-fill-color: #64748B !important;
+  }
 }
 
 /* Smooth CSS variable theme transition utility */

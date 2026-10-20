@@ -106,7 +106,8 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onSuccess
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. Ramesh Kumar"
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  enterKeyHint="next"
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
                 />
               </div>
 
@@ -123,7 +124,8 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onSuccess
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
                     placeholder="98XXXXXXXX"
-                    className="w-full text-xs p-2.5 pl-11 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono"
+                    enterKeyHint="next"
+                    className="w-full text-xs p-2.5 pl-11 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono bg-white text-slate-900 placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
@@ -137,7 +139,8 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onSuccess
                   value={villageAddress}
                   onChange={(e) => setVillageAddress(e.target.value)}
                   placeholder="e.g. Near Old Temple, Main Road, H. Hosahalli"
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  enterKeyHint="next"
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
                 />
               </div>
 
@@ -150,7 +153,8 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onSuccess
                   value={photoUrl}
                   onChange={(e) => setPhotoUrl(e.target.value)}
                   placeholder="https://example.com/photo.jpg"
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  enterKeyHint="done"
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
                 />
               </div>
 

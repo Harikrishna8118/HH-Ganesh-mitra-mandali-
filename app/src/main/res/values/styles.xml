@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.GaneshMitraMandali" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Do not use fullscreen; keep standard Android status bar visible -->
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:fitsSystemWindows">true</item>
         <item name="android:statusBarColor">#B91C1C</item>
         <item name="android:navigationBarColor">#111827</item>
         <item name="android:windowLightStatusBar">false</item>

@@ -170,7 +170,7 @@ export const EditMemberProfileModal: React.FC<EditMemberProfileModalProps> = ({
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. Ramesh Gowda"
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
             />
           </div>
 
@@ -186,7 +186,7 @@ export const EditMemberProfileModal: React.FC<EditMemberProfileModalProps> = ({
                 value={villageAddress}
                 onChange={(e) => setVillageAddress(e.target.value)}
                 placeholder="e.g. Near Temple Square, Main Street, H. Hosahalli"
-                className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
               />
             </div>
           </div>
@@ -201,7 +201,7 @@ export const EditMemberProfileModal: React.FC<EditMemberProfileModalProps> = ({
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Brief note about your role or enthusiasm for Ganesh Mandali..."
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
             />
           </div>
 

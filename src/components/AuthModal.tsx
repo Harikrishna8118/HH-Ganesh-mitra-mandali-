@@ -86,7 +86,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
                     placeholder="98XXXXXXXX"
-                    className="w-full text-xs p-2.5 pl-11 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 font-mono tracking-wider"
+                    className="w-full text-xs p-2.5 pl-11 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 font-mono tracking-wider bg-white text-slate-900 placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
@@ -141,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="123456"
-                  className="w-full text-center text-lg font-mono tracking-widest p-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500"
+                  className="w-full text-center text-lg font-mono tracking-widest p-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-semibold"
                 />
               </div>
 
