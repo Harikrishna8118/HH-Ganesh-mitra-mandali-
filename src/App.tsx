@@ -211,7 +211,7 @@ function MandaliAppContent() {
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col antialiased selection:bg-amber-200 dark:selection:bg-amber-800 selection:text-amber-900 dark:selection:text-amber-100 font-sans transition-colors duration-250">
+    <div className="w-full h-full overflow-hidden flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] antialiased selection:bg-amber-200 dark:selection:bg-amber-800 selection:text-amber-900 dark:selection:text-amber-100 font-sans transition-colors duration-250">
       
       {/* Devotional Splash Screen on initial session arrival */}
       {showSplash && (
@@ -239,7 +239,7 @@ function MandaliAppContent() {
 
       {/* Persistent Offline Outage Alert Banner */}
       {!isOnline && !offlineBannerDismissed && (
-        <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white px-4 py-2.5 text-xs font-semibold shadow-xs flex items-center justify-between gap-3 animate-in fade-in sticky top-16 z-30">
+        <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white px-4 py-2.5 text-xs font-semibold shadow-xs flex items-center justify-between gap-3 animate-in fade-in sticky top-0 z-30">
           <div className="flex items-center gap-2 min-w-0">
             <WifiOff className="w-4 h-4 text-amber-200 shrink-0 animate-pulse" />
             <span className="truncate">
@@ -265,8 +265,8 @@ function MandaliAppContent() {
         </div>
       )}
 
-      {/* Main View Area with Max-Width Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 pt-5 pb-24 md:pb-12">
+      {/* Main View Area with Standard Overflow-Y Auto Scrollbar */}
+      <main className="flex-1 w-full overflow-y-auto overflow-x-hidden overscroll-y-contain view-scroll-container max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-24 md:pb-12">
         <ErrorBoundary
           key={currentView}
           viewName={currentView.toUpperCase()}
