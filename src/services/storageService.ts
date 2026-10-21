@@ -19,18 +19,28 @@ export const storage = getStorage(
   firebaseConfig.storageBucket ? `gs://${firebaseConfig.storageBucket}` : undefined
 );
 
-// Allowed MIME types explicitly targeting JPEG, PNG, and MP4
+// Allowed MIME types explicitly targeting JPEG, PNG, MP4, and mobile device media
 export const ALLOWED_IMAGE_MIME_TYPES = [
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/gif',
+  'image/bmp',
 ];
 
 export const ALLOWED_VIDEO_MIME_TYPES = [
   'video/mp4',
   'video/webm',
   'video/quicktime',
+  'video/3gpp',
+  'video/3gp',
+  'video/x-matroska',
+  'video/avi',
+  'video/mpeg',
+  'video/m4v',
 ];
 
 export const ALLOWED_AUDIO_MIME_TYPES = [
@@ -54,9 +64,17 @@ export const ALLOWED_EXTENSIONS = [
   'jpeg',
   'png',
   'webp',
+  'heic',
+  'heif',
+  'gif',
+  'bmp',
   'mp4',
   'webm',
   'mov',
+  '3gp',
+  'mkv',
+  'avi',
+  'm4v',
   'ogg',
   'mp3',
   'wav',
@@ -115,17 +133,17 @@ export function validateFile(file: File): FileValidationResult {
     return { isValid: false, error: 'No file was provided.' };
   }
 
-  const rawExt = file.name.split('.').pop()?.toLowerCase() || '';
+  const rawExt = file.name ? file.name.split('.').pop()?.toLowerCase() || '' : '';
   const mimeType = (file.type || '').toLowerCase();
 
-  const isImageMime = ALLOWED_IMAGE_MIME_TYPES.includes(mimeType);
-  const isVideoMime = ALLOWED_VIDEO_MIME_TYPES.includes(mimeType);
+  const isImageMime = mimeType.startsWith('image/') || ALLOWED_IMAGE_MIME_TYPES.includes(mimeType);
+  const isVideoMime = mimeType.startsWith('video/') || ALLOWED_VIDEO_MIME_TYPES.includes(mimeType);
   const isAudioMime =
-    ALLOWED_AUDIO_MIME_TYPES.some((t) => mimeType.startsWith(t.split(';')[0])) ||
-    mimeType.startsWith('audio/');
+    mimeType.startsWith('audio/') ||
+    ALLOWED_AUDIO_MIME_TYPES.some((t) => mimeType.startsWith(t.split(';')[0]));
 
-  const isImageExt = ['jpg', 'jpeg', 'png', 'webp'].includes(rawExt);
-  const isVideoExt = ['mp4', 'webm', 'mov'].includes(rawExt);
+  const isImageExt = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'gif', 'bmp'].includes(rawExt);
+  const isVideoExt = ['mp4', 'webm', 'mov', '3gp', 'mkv', 'avi', 'm4v'].includes(rawExt);
   const isAudioExt = ['webm', 'ogg', 'mp3', 'wav', 'm4a', 'aac'].includes(rawExt);
 
   const isImage = isImageMime || isImageExt;
@@ -135,7 +153,7 @@ export function validateFile(file: File): FileValidationResult {
   if (!isImage && !isVideo && !isAudio) {
     return {
       isValid: false,
-      error: 'Unsupported file format. Only JPEG, PNG, MP4, and Audio files (WebM, MP3, WAV, OGG, M4A) are permitted.',
+      error: 'Unsupported file format. Please select an image (JPEG, PNG, WEBP), video (MP4), or audio file.',
     };
   }
 
@@ -199,9 +217,9 @@ export const validateMediaFile = validateFile;
  * Compresses an image client-side before upload to optimize storage and speed
  */
 export async function compressImage(
-  file: File,
-  maxDimension = 1400,
-  quality = 0.85
+  file: File | Blob,
+  maxDimension = 900,
+  quality = 0.65
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -230,10 +248,20 @@ export async function compressImage(
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => {
-            if (blob) resolve(blob);
-            else resolve(file);
+            if (blob) {
+              // If blob is still > 250KB, compress once more to guarantee well below 1MB Firestore limit
+              if (blob.size > 250 * 1024 && quality > 0.4) {
+                compressImage(blob, Math.min(width, 650), quality - 0.2)
+                  .then(resolve)
+                  .catch(() => resolve(blob));
+              } else {
+                resolve(blob);
+              }
+            } else {
+              resolve(file);
+            }
           },
-          file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+          'image/jpeg',
           quality
         );
       };
@@ -275,16 +303,16 @@ export async function uploadFile(
 
   const storageRef = ref(storage, storagePath);
 
-  try {
-    let payload: Blob | File = file;
-    if (validation.mediaType === 'image') {
-      try {
-        payload = await compressImage(file);
-      } catch {
-        payload = file;
-      }
+  let payload: Blob | File = file;
+  if (validation.mediaType === 'image') {
+    try {
+      payload = await compressImage(file, 900, 0.65);
+    } catch {
+      payload = file;
     }
+  }
 
+  try {
     const contentType = file.type || (validation.mediaType === 'image' ? 'image/jpeg' : 'video/mp4');
 
     const uploadTask = uploadBytesResumable(storageRef, payload, {
@@ -306,22 +334,26 @@ export async function uploadFile(
               : 0;
           if (onProgress) onProgress(progress);
         },
-        (error) => {
+        async (error) => {
           // Graceful fallback to client data URL if bucket is unconfigured or blocked
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            if (onProgress) onProgress(100);
-            resolve({
-              downloadUrl: e.target?.result as string,
-              storagePath,
-              storageRef,
-              fileName: safeName,
-              mediaType: validation.mediaType!,
-              fileSize: file.size,
-            });
-          };
-          reader.onerror = () => reject(error);
-          reader.readAsDataURL(file);
+          try {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (onProgress) onProgress(100);
+              resolve({
+                downloadUrl: e.target?.result as string,
+                storagePath,
+                storageRef,
+                fileName: safeName,
+                mediaType: validation.mediaType!,
+                fileSize: payload.size,
+              });
+            };
+            reader.onerror = () => reject(error);
+            reader.readAsDataURL(payload);
+          } catch {
+            reject(error);
+          }
         },
         async () => {
           try {
@@ -333,22 +365,23 @@ export async function uploadFile(
               storageRef,
               fileName: safeName,
               mediaType: validation.mediaType!,
-              fileSize: file.size,
+              fileSize: payload.size,
             });
           } catch {
             const reader = new FileReader();
             reader.onload = (e) => {
+              if (onProgress) onProgress(100);
               resolve({
                 downloadUrl: e.target?.result as string,
                 storagePath,
                 storageRef,
                 fileName: safeName,
                 mediaType: validation.mediaType!,
-                fileSize: file.size,
+                fileSize: payload.size,
               });
             };
             reader.onerror = (readErr) => reject(readErr);
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(payload);
           }
         }
       );
@@ -364,11 +397,11 @@ export async function uploadFile(
           storageRef,
           fileName: safeName,
           mediaType: validation.mediaType!,
-          fileSize: file.size,
+          fileSize: payload.size,
         });
       };
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(payload);
     });
   }
 }

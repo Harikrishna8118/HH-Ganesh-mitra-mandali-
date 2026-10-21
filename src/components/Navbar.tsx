@@ -106,7 +106,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               Announcements
             </button>
-            {isLoggedIn && (
+            <button
+              onClick={() => onNavigate('profile')}
+              className={`whitespace-nowrap shrink-0 transition-colors ${
+                currentView === 'profile' ? 'text-red-600 dark:text-red-400 font-semibold' : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Profile
+            </button>
+            {isAdmin && (
               <button
                 onClick={() => onNavigate('admin')}
                 className={`whitespace-nowrap shrink-0 flex items-center gap-1 transition-colors ${

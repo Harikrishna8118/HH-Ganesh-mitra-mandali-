@@ -49,7 +49,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   onExitMandali,
   onNavigate,
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isLoggedIn } = useAuth();
   const [copiedId, setCopiedId] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
@@ -94,7 +94,7 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   };
 
   const cleanPhone = member.mobileNumber ? member.mobileNumber.replace(/\D/g, '') : '';
-  const canViewPhone = member.isPhonePublic || isMe || isAdmin;
+  const canViewPhone = member.isPhonePublic || isMe || isAdmin || isLoggedIn;
 
   const handleCopyId = async () => {
     try {

@@ -9,14 +9,14 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, unreadCount = 0 }) => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isAdmin } = useAuth();
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'members', label: 'Members', icon: Users },
     { id: 'chat', label: 'Chat', icon: MessageSquare, badge: unreadCount > 0 ? unreadCount : undefined },
     { id: 'discussions', label: 'Polls', icon: Vote },
-    ...(isLoggedIn ? [{ id: 'admin', label: 'Manage', icon: Shield }] : [{ id: 'profile', label: 'Profile', icon: User }]),
+    { id: 'profile', label: 'Profile', icon: User },
   ];
 
   return (

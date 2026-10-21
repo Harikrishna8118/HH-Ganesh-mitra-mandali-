@@ -19,8 +19,15 @@ import {
   FileCheck2,
   Mic,
   Vote,
+  Phone,
+  RotateCcw,
 } from 'lucide-react';
-import { sendChatMessage, deleteChatMessage, sharePollResultsToChat } from '../services/mandaliService.ts';
+import {
+  sendChatMessage,
+  deleteChatMessage,
+  sharePollResultsToChat,
+  clearAllChatMessagesForEveryone,
+} from '../services/mandaliService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import {
@@ -44,28 +51,113 @@ import { AudioMessagePlayer } from '../components/AudioMessagePlayer.tsx';
 import { VoiceRecorderBar } from '../components/VoiceRecorderBar.tsx';
 import { PollResultCard } from '../components/PollResultCard.tsx';
 import { SharePollModal } from '../components/SharePollModal.tsx';
-import type { ChatMessage, Poll } from '../types.ts';
+import { MemberDetailModal } from '../components/MemberDetailModal.tsx';
+import type { ChatMessage, Poll, MemberProfile } from '../types.ts';
 
 interface ChatViewProps {
   messages: ChatMessage[];
   polls?: Poll[];
+  members?: MemberProfile[];
   onOpenAuth: () => void;
   onNavigate?: (view: string) => void;
 }
 
 const COMMON_EMOJIS = ['🙏', '🚩', '🪔', '🌺', '🕉️', '🐘', '🎉', '👍', '❤️', '👏', '💐', '🔔'];
 
+const getInitials = (name?: string) => {
+  if (!name) return 'M';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
 export const ChatView: React.FC<ChatViewProps> = ({
   messages,
   polls = [],
+  members = [],
   onOpenAuth,
   onNavigate,
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin } = useAuth();
   const [inputText, setInputText] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  // Clear Chat State
+  const [clearChatCutoff, setClearChatCutoff] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('gmm_chat_cleared_cutoff');
+    } catch {
+      return null;
+    }
+  });
+  const [showClearChatModal, setShowClearChatModal] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
+
+  // Filter messages based on local clear chat cutoff
+  const visibleMessages = useMemo(() => {
+    if (!clearChatCutoff) return messages;
+    const cutoffTime = new Date(clearChatCutoff).getTime();
+    return messages.filter((m) => new Date(m.createdAt).getTime() > cutoffTime);
+  }, [messages, clearChatCutoff]);
+
+  const handleClearChatForMe = () => {
+    const now = new Date().toISOString();
+    try {
+      localStorage.setItem('gmm_chat_cleared_cutoff', now);
+    } catch {
+      // Ignore
+    }
+    setClearChatCutoff(now);
+    setShowClearChatModal(false);
+  };
+
+  const handleRestoreChat = () => {
+    try {
+      localStorage.removeItem('gmm_chat_cleared_cutoff');
+    } catch {
+      // Ignore
+    }
+    setClearChatCutoff(null);
+  };
+
+  const handleClearChatForEveryone = async () => {
+    if (!isAdmin || !currentUser) return;
+    try {
+      setIsClearingChat(true);
+      await clearAllChatMessagesForEveryone(currentUser.uid, currentUser.fullName);
+      handleRestoreChat();
+      setShowClearChatModal(false);
+    } catch {
+      setUploadError('Failed to clear chat for everyone. Please check permissions and connection.');
+    } finally {
+      setIsClearingChat(false);
+    }
+  };
+
+  // Member Profile & Details Modal State
+  const [selectedMemberForDetails, setSelectedMemberForDetails] = useState<MemberProfile | null>(null);
+
+  const handleMemberClick = (memberProfile: MemberProfile | undefined, msg: ChatMessage) => {
+    if (memberProfile) {
+      setSelectedMemberForDetails(memberProfile);
+    } else {
+      setSelectedMemberForDetails({
+        id: msg.senderId,
+        userId: msg.senderId,
+        fullName: msg.senderName || 'Village Member',
+        mobileNumber: 'H. Hosahalli Mandali Contact',
+        isPhonePublic: true,
+        role: msg.senderRole || 'member',
+        joinedAt: msg.createdAt,
+        villageAddress: 'H. Hosahalli Village, Mandya District',
+        status: 'active',
+      });
+    }
+  };
 
   // Share Poll Results Modal State
   const [showSharePollModal, setShowSharePollModal] = useState(false);
@@ -107,7 +199,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   // Extract all media attachments from chat history for MediaViewer gallery navigation
   const allChatMedia: MediaItem[] = useMemo(() => {
-    return messages
+    return visibleMessages
       .filter((m) => !m.isDeleted && !!m.mediaUrl && (m.mediaType === 'image' || m.mediaType === 'video'))
       .map((m) => ({
         id: m.id,
@@ -118,7 +210,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         createdAt: m.createdAt,
         caption: m.text,
       }));
-  }, [messages]);
+  }, [visibleMessages]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -126,7 +218,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [visibleMessages.length]);
 
   // Clean up object URLs on unmount or reset
   useEffect(() => {
@@ -356,7 +448,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+        accept="image/*,video/*"
         className="hidden"
       />
 
@@ -382,8 +474,31 @@ export const ChatView: React.FC<ChatViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-            {messages.length} messages
+          {clearChatCutoff && (
+            <button
+              type="button"
+              onClick={handleRestoreChat}
+              className="text-[11px] font-semibold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2 py-1 rounded-lg transition flex items-center gap-1 shadow-2xs active:scale-95 cursor-pointer"
+              title="Restore cleared messages"
+            >
+              <RotateCcw className="w-3 h-3 text-amber-700" />
+              <span className="hidden sm:inline">Restore</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowClearChatModal(true)}
+            className="text-[11px] font-semibold text-slate-700 hover:text-red-700 hover:bg-red-50 border border-slate-300 px-2.5 py-1 rounded-lg transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+            title="Clear Chat messages"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-600" />
+            <span className="hidden xs:inline">Clear Chat</span>
+            <span className="xs:hidden">Clear</span>
+          </button>
+
+          <div className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full hidden sm:inline-block">
+            {visibleMessages.length} messages
           </div>
         </div>
       </div>
@@ -406,15 +521,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5 chat-scroll bg-gradient-to-b from-[#FAF8F5] to-[#F5F2EC]">
-        {messages.length === 0 ? (
+        {visibleMessages.length === 0 ? (
           <EmptyState
             icon={MessageSquare}
-            title="No messages yet."
-            description="The mandali conversation is initially empty. Send a message, photo, or festival video to communicate with fellow village members!"
+            title={clearChatCutoff ? "Chat history cleared." : "No messages yet."}
+            description={
+              clearChatCutoff
+                ? "You cleared the chat on this screen. Tap 'Restore' above if you want to view previous messages again."
+                : "The mandali conversation is initially empty. Send a message, photo, or festival video to communicate with fellow village members!"
+            }
             className="my-auto bg-transparent border-0"
           />
         ) : (
-          messages.map((msg) => {
+          visibleMessages.map((msg) => {
             const isMe = currentUser?.uid === msg.senderId;
 
             // System announcements in chat
@@ -428,18 +547,79 @@ export const ChatView: React.FC<ChatViewProps> = ({
               );
             }
 
+            const senderMember = members?.find((m) => m.id === msg.senderId || m.userId === msg.senderId);
+            const displayName = msg.senderName || senderMember?.fullName || (isMe ? 'You' : 'Member');
+            const avatarUrl = senderMember?.avatarUrl;
+
             return (
               <div
                 key={msg.id}
-                className={`flex flex-col group ${isMe ? 'items-end' : 'items-start'}`}
+                className={`flex gap-2 group mb-2.5 items-end ${
+                  isMe ? 'flex-row-reverse self-end' : 'flex-row self-start'
+                }`}
               >
-                <div
-                  className={`relative max-w-[88%] sm:max-w-md rounded-2xl p-3 shadow-xs transition-all ${
+                {/* Member Profile Avatar Thumbnail / Initials - Clickable */}
+                <button
+                  type="button"
+                  onClick={() => handleMemberClick(senderMember, msg)}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0 flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-2xs overflow-hidden cursor-pointer hover:scale-105 active:scale-95 transition-transform ${
                     isMe
-                      ? 'bg-red-700 text-white rounded-tr-none'
-                      : 'bg-white text-slate-900 rounded-tl-none border border-slate-200/90'
+                      ? 'bg-red-800 text-amber-200 ring-2 ring-red-300'
+                      : 'bg-amber-100 text-amber-900 ring-2 ring-amber-300'
+                  }`}
+                  title={`Click to view ${displayName}'s profile and contact`}
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{getInitials(displayName)}</span>
+                  )}
+                </button>
+
+                {/* Message Bubble Container */}
+                <div
+                  className={`relative max-w-[82%] sm:max-w-md rounded-2xl p-3 shadow-xs transition-all ${
+                    isMe
+                      ? 'bg-red-700 text-white rounded-br-none'
+                      : 'bg-white text-slate-900 rounded-bl-none border border-slate-200/90'
                   } ${msg.isDeleted ? 'italic text-opacity-70' : ''}`}
                 >
+                  {/* Prominent Clickable Member Name Header */}
+                  <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-black/5 dark:border-white/10">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => handleMemberClick(senderMember, msg)}
+                        className={`text-xs font-extrabold truncate text-left cursor-pointer hover:underline flex items-center gap-1 group/name ${
+                          isMe ? 'text-amber-200 hover:text-white' : 'text-red-700 hover:text-red-900 font-bold'
+                        }`}
+                        title={`Click to view ${displayName}'s details & mobile number`}
+                      >
+                        <span className="truncate">{isMe ? `${displayName} (You)` : displayName}</span>
+                        <Phone className="w-2.5 h-2.5 opacity-60 group-hover/name:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                      <span
+                        className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full shrink-0 ${
+                          isMe
+                            ? 'bg-red-800/80 text-amber-200 border border-amber-300/30'
+                            : msg.senderRole === 'admin'
+                            ? 'bg-red-100 text-red-800 border border-red-200 font-extrabold'
+                            : 'bg-amber-100 text-amber-900 border border-amber-200'
+                        }`}
+                      >
+                        {msg.senderRole === 'admin'
+                          ? 'Admin'
+                          : senderMember?.villageAddress
+                          ? 'H. Hosahalli'
+                          : 'Member'}
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Reply Context if present */}
                   {msg.replyToText && (
                     <div
@@ -453,18 +633,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         Replying to {msg.replyToSender}
                       </strong>
                       <span className="truncate block">{msg.replyToText}</span>
-                    </div>
-                  )}
-
-                  {/* Sender Name */}
-                  {!isMe && (
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-xs font-bold text-red-700">
-                        {msg.senderName}
-                      </span>
-                      <span className="text-[9px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">
-                        Member
-                      </span>
                     </div>
                   )}
 
@@ -932,6 +1100,73 @@ export const ChatView: React.FC<ChatViewProps> = ({
         onConfirm={confirmDeleteMessage}
         onCancel={() => setMessageToDelete(null)}
       />
+
+      {/* Member Profile Details & Mobile Contact Modal */}
+      {selectedMemberForDetails && (
+        <MemberDetailModal
+          member={selectedMemberForDetails}
+          isOpen={!!selectedMemberForDetails}
+          onClose={() => setSelectedMemberForDetails(null)}
+          onNavigate={onNavigate}
+        />
+      )}
+
+      {/* Clear Chat Confirmation Modal */}
+      {showClearChatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Clear Chat History</h3>
+                <p className="text-xs text-slate-500">Choose how you want to clear messages</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Clearing chat will clear all existing conversation messages from your chat screen.
+            </p>
+
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleClearChatForMe}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <span>Clear on This Device (For Me)</span>
+              </button>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={isClearingChat}
+                  onClick={handleClearChatForEveryone}
+                  className="w-full py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer active:scale-95"
+                >
+                  {isClearingChat ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Clearing for Everyone...</span>
+                    </>
+                  ) : (
+                    <span>Delete All Messages for Everyone (Admin)</span>
+                  )}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowClearChatModal(false)}
+                className="w-full py-2 px-3 rounded-xl text-slate-500 hover:text-slate-700 font-semibold text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

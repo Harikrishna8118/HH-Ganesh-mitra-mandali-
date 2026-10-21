@@ -305,6 +305,7 @@ function MandaliAppContent() {
             <ChatView
               messages={chatMessages}
               polls={polls}
+              members={members}
               onOpenAuth={() => setShowAuthModal(true)}
               onNavigate={setCurrentView}
             />

@@ -13,6 +13,7 @@ import {
   limit,
   where,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase.ts';
 import type {
@@ -502,6 +503,37 @@ export async function deleteChatMessage(
   if (adminId && adminName) {
     await logAdminAction(adminId, adminName, 'DELETE_CHAT_MESSAGE', 'ChatMessage', messageId, 'Moderated chat message');
   }
+}
+
+export async function clearAllChatMessagesForEveryone(
+  adminId: string,
+  adminName: string
+) {
+  const colRef = collection(db, 'chat_messages');
+  const snap = await getDocs(colRef);
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => {
+    batch.delete(d.ref);
+  });
+  await batch.commit();
+
+  await logAdminAction(
+    adminId,
+    adminName,
+    'CLEAR_CHAT',
+    'ChatMessage',
+    'all',
+    'Cleared all group chat messages for everyone'
+  );
+
+  // Post clean system notice in chat
+  await sendChatMessage({
+    senderId: 'system',
+    senderName: 'GMM System',
+    senderRole: 'admin',
+    text: `🧹 Group chat history was cleared by Admin (${adminName}).`,
+    isAnnouncement: true,
+  });
 }
 
 export async function sharePollResultsToChat(

@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
-            // Enable file chooser for uploading photos and documents
+            // Enable file chooser for uploading photos, videos, and documents
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams) {
                 if (uploadMessage != null) {
@@ -104,9 +104,15 @@ public class MainActivity extends AppCompatActivity {
                     uploadMessage = null;
                 }
                 uploadMessage = filePathCallback;
-                Intent intent = fileChooserParams.createIntent();
+                
+                Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                getContentIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                getContentIntent.setType("*/*");
+                getContentIntent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*", "audio/*"});
+
+                Intent chooserIntent = Intent.createChooser(getContentIntent, "Select Photo, Video or Camera");
                 try {
-                    startActivityForResult(intent, FILECHOOSER_RESULTCODE);
+                    startActivityForResult(chooserIntent, FILECHOOSER_RESULTCODE);
                 } catch (Exception e) {
                     uploadMessage = null;
                     return false;
@@ -135,7 +141,21 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, intent);
         if (requestCode == FILECHOOSER_RESULTCODE) {
             if (uploadMessage == null) return;
-            uploadMessage.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, intent));
+            Uri[] results = null;
+            if (resultCode == RESULT_OK && intent != null) {
+                if (intent.getData() != null) {
+                    results = new Uri[]{intent.getData()};
+                } else if (intent.getClipData() != null) {
+                    int count = intent.getClipData().getItemCount();
+                    results = new Uri[count];
+                    for (int i = 0; i < count; i++) {
+                        results[i] = intent.getClipData().getItemAt(i).getUri();
+                    }
+                } else {
+                    results = WebChromeClient.FileChooserParams.parseResult(resultCode, intent);
+                }
+            }
+            uploadMessage.onReceiveValue(results);
             uploadMessage = null;
         }
     }
