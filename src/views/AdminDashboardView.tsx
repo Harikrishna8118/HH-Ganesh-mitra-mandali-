@@ -19,6 +19,9 @@ import {
   MapPin,
   Trash2,
   Lock,
+  Radio,
+  Send,
+  BellRing,
 } from 'lucide-react';
 import {
   approveJoinRequest,
@@ -27,7 +30,9 @@ import {
   changeMemberRole,
   updateAppSettings,
   resolveEmergency,
+  logAdminAction,
 } from '../services/mandaliService.ts';
+import { broadcastUrgentPushNotification } from '../services/fcmService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { GaneshLogo } from '../components/GaneshLogo.tsx';
@@ -118,6 +123,52 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
     isDestructive: boolean;
     action: () => Promise<void>;
   } | null>(null);
+
+  // Urgent Broadcast Dispatcher state
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [broadcastPriority, setBroadcastPriority] = useState<'urgent' | 'high'>('urgent');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [broadcastSuccess, setBroadcastSuccess] = useState<string | null>(null);
+
+  const handleSendBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) return;
+    setIsBroadcasting(true);
+    setAdminError(null);
+    try {
+      await broadcastUrgentPushNotification({
+        title: broadcastTitle.trim(),
+        body: broadcastBody.trim(),
+        priority: broadcastPriority,
+        topic: broadcastPriority === 'urgent' ? 'urgent' : 'all',
+        link: 'announcements',
+        senderId: currentUser?.uid || 'admin',
+        senderName: currentUser?.fullName || 'Mandali Admin',
+      });
+      await logAdminAction(
+        currentUser?.uid || 'admin',
+        currentUser?.fullName || 'Admin',
+        'BROADCAST_PUSH_ALERT',
+        'PushBroadcast',
+        `fcm_${Date.now()}`,
+        `Dispatched ${broadcastPriority.toUpperCase()} broadcast: "${broadcastTitle.trim()}"`
+      );
+      setBroadcastSuccess('Urgent push alert successfully broadcast to all registered village devices!');
+      setBroadcastTitle('');
+      setBroadcastBody('');
+      setTimeout(() => {
+        setBroadcastSuccess(null);
+        setShowBroadcastModal(false);
+      }, 2500);
+    } catch (err: any) {
+      setAdminError(err?.message || 'Failed to dispatch broadcast');
+      setTimeout(() => setAdminError(null), 4000);
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
 
   const handleApprove = async (req: JoinRequest) => {
     try {
@@ -324,10 +375,50 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             </div>
           </div>
 
+          {/* Emergency & Urgent Push Broadcast Dispatcher Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-md space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Radio className="w-5 h-5 text-white animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wide">
+                    Live Village Push Notification Dispatcher
+                  </h3>
+                  <p className="text-xs text-white/90">
+                    Send real-time high-priority announcements & audio chimes to all registered devices in H. Hosahalli
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBroadcastModal(true)}
+                className="px-4 py-2 rounded-xl bg-white text-red-700 hover:bg-white/90 text-xs font-black transition flex items-center gap-1.5 shadow-xs shrink-0 self-start sm:self-auto cursor-pointer active:scale-95"
+              >
+                <BellRing className="w-4 h-4 text-red-600 animate-bounce" />
+                <span>Broadcast Urgent Alert</span>
+              </button>
+            </div>
+          </div>
+
           {/* Quick Shortcuts */}
           <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
             <h3 className="text-sm font-bold text-slate-900">Administrator Actions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <button
+                onClick={() => setShowBroadcastModal(true)}
+                className="p-3 rounded-xl border border-red-300 hover:border-red-500 bg-red-50/70 text-left transition"
+              >
+                <div className="text-xs font-bold text-red-900 flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                  <span>Broadcast Alert</span>
+                </div>
+                <div className="text-[11px] text-red-700 mt-0.5">
+                  Push instant alert overlay
+                </div>
+              </button>
               <button
                 onClick={() => setTab('requests')}
                 className="p-3 rounded-xl border border-slate-200 hover:border-amber-400 bg-amber-50/40 text-left transition"
@@ -562,12 +653,22 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
             <h2 className="text-sm font-bold text-slate-900">
               Emergency Incidents Desk ({emergencies.length})
             </h2>
-            <button
-              onClick={onOpenEmergency}
-              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-            >
-              Test Emergency Broadcast
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowBroadcastModal(true)}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>Dispatch FCM Alert</span>
+              </button>
+              <button
+                onClick={onOpenEmergency}
+                className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900"
+              >
+                Report Emergency
+              </button>
+            </div>
           </div>
 
           {emergencies.length === 0 ? (
@@ -801,6 +902,132 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                 Confirm Rejection
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* URGENT BROADCAST DISPATCHER MODAL */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xl p-6 border-2 border-red-500/80 space-y-4">
+            
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-red-950 dark:text-red-100">
+                    Broadcast Urgent Alert (FCM)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Pushes high-priority overlay & audio beacon to all village devices
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBroadcastModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {broadcastSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 text-xs font-bold border border-emerald-300 dark:border-emerald-800 flex items-center gap-2 animate-in fade-in">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{broadcastSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSendBroadcast} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Alert Title <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={broadcastTitle}
+                  onChange={(e) => setBroadcastTitle(e.target.value)}
+                  placeholder="e.g. URGENT: Electrical Pandhal Inspection / Water Safety"
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-[var(--bg-canvas)] focus:ring-2 focus:ring-red-500 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Priority Level
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastPriority('urgent')}
+                    className={`py-2 px-3 rounded-xl text-xs font-black border transition flex items-center justify-center gap-1.5 ${
+                      broadcastPriority === 'urgent'
+                        ? 'bg-red-600 text-white border-red-700 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                    }`}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>🚨 Urgent (Red Siren)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastPriority('high')}
+                    className={`py-2 px-3 rounded-xl text-xs font-black border transition flex items-center justify-center gap-1.5 ${
+                      broadcastPriority === 'high'
+                        ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                    }`}
+                  >
+                    <BellRing className="w-3.5 h-3.5" />
+                    <span>⚡ High Priority</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Alert Message & Emergency Instructions <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={broadcastBody}
+                  onChange={(e) => setBroadcastBody(e.target.value)}
+                  placeholder="Provide urgent instructions for village residents and volunteers..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-[var(--bg-canvas)] focus:ring-2 focus:ring-red-500 font-medium"
+                />
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                <Radio className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                <span>
+                  Dispatched by <strong>{currentUser?.fullName || 'Mandali Admin'}</strong> to all active web & PWA devices in H. Hosahalli.
+                </span>
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBroadcastModal(false)}
+                  className="w-1/2 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isBroadcasting}
+                  className="w-1/2 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs shadow-md shadow-red-600/30 flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isBroadcasting ? 'Broadcasting...' : 'Send Broadcast'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

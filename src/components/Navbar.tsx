@@ -26,6 +26,8 @@ interface NavbarProps {
   isOnline?: boolean;
   offlineSince?: Date | null;
   onCheckConnection?: () => Promise<boolean>;
+  hasUrgentAlert?: boolean;
+  onOpenUrgentAlert?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,6 +40,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   isOnline = true,
   offlineSince = null,
   onCheckConnection,
+  hasUrgentAlert = false,
+  onOpenUrgentAlert,
 }) => {
   const { currentUser, isLoggedIn, isAdmin, isMember } = useAuth();
   const { isDark, toggleTheme } = useTheme();
@@ -177,6 +181,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="hidden sm:block">
               <PWAInstallButton />
             </div>
+
+            {/* Urgent Alert Re-open Indicator */}
+            {hasUrgentAlert && onOpenUrgentAlert && (
+              <button
+                type="button"
+                onClick={onOpenUrgentAlert}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-black text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 active:scale-95 rounded-xl shadow-md shadow-red-600/30 border border-red-400 ring-2 ring-red-500/40 animate-pulse transition whitespace-nowrap cursor-pointer"
+                title="Open Active Urgent Alert / Emergency Announcement"
+              >
+                <ShieldAlert className="w-4 h-4 text-white animate-bounce" />
+                <span className="hidden sm:inline">Active Alert</span>
+              </button>
+            )}
 
             {/* Emergency Alert Quick Button */}
             <button

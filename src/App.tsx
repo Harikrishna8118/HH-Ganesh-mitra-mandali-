@@ -11,6 +11,7 @@ import { BottomNav } from './components/BottomNav.tsx';
 import { SplashScreen } from './components/SplashScreen.tsx';
 import { EmergencyBanner } from './components/EmergencyBanner.tsx';
 import { EmergencyModal } from './components/EmergencyModal.tsx';
+import { UrgentAlertOverlay, type UrgentAlertData } from './components/UrgentAlertOverlay.tsx';
 import { JoinModal } from './components/JoinModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
@@ -48,7 +49,12 @@ import {
   saveCriticalDataToCache,
   loadCriticalDataFromCache,
 } from './services/offlineCacheService.ts';
-import { WifiOff, RefreshCw } from 'lucide-react';
+import { WifiOff, RefreshCw, BellRing, X } from 'lucide-react';
+import {
+  subscribeToPushBroadcasts,
+  registerPushNotifications,
+  type PushBroadcastPayload,
+} from './services/fcmService.ts';
 
 import type {
   AppSettings,
@@ -68,6 +74,14 @@ function MandaliAppContent() {
   const { currentUser, isAdmin } = useAuth();
   const { isOnline, offlineSince, checkConnection } = useNetworkStatus();
   const [offlineBannerDismissed, setOfflineBannerDismissed] = useState<boolean>(false);
+  const [liveBroadcast, setLiveBroadcast] = useState<PushBroadcastPayload | null>(null);
+  const [urgentAlert, setUrgentAlert] = useState<UrgentAlertData | null>(null);
+  const [lastUrgentAlert, setLastUrgentAlert] = useState<UrgentAlertData | null>(null);
+
+  const triggerUrgentAlert = (data: UrgentAlertData) => {
+    setUrgentAlert(data);
+    setLastUrgentAlert(data);
+  };
 
   // App Navigation state
   const [currentView, setCurrentView] = useState<string>('home');
@@ -203,12 +217,73 @@ function MandaliAppContent() {
     return () => clearInterval(reminderInterval);
   }, [polls, announcements]);
 
+  // Firebase Cloud Messaging Live Push Broadcasts listener
+  useEffect(() => {
+    const unsub = subscribeToPushBroadcasts((payload) => {
+      setLiveBroadcast(payload);
+      // Immediately open high-priority Urgent Alert Overlay for instant attention
+      triggerUrgentAlert({
+        id: payload.id || `fcm_${Date.now()}`,
+        title: payload.title,
+        body: payload.body,
+        priority: payload.priority,
+        topic: payload.topic,
+        senderName: payload.senderName,
+        sentAt: payload.sentAt,
+        link: payload.link,
+      });
+    });
+    return () => unsub();
+  }, []);
+
+  // Auto-register FCM tokens on user login if push notifications previously enabled
+  useEffect(() => {
+    if (currentUser?.uid && localStorage.getItem('gmm_notifications_enabled') === 'true') {
+      registerPushNotifications(currentUser.uid, currentUser.fullName).catch(() => {});
+    }
+  }, [currentUser?.uid, currentUser?.fullName]);
+
   const handleDismissSplash = () => {
     sessionStorage.setItem('gmm_splash_shown', 'true');
     setShowSplash(false);
   };
 
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+
+  // Active Emergency or Broadcast lookup for Navbar quick-reopen
+  const activeEmergency = emergencies.find((e) => e.isActive);
+  const hasActiveAlert = !!urgentAlert || !!lastUrgentAlert || !!activeEmergency || !!liveBroadcast;
+
+  const handleOpenActiveAlert = () => {
+    if (lastUrgentAlert) {
+      setUrgentAlert(lastUrgentAlert);
+    } else if (activeEmergency) {
+      triggerUrgentAlert({
+        id: activeEmergency.id,
+        title: `EMERGENCY ALERT: ${activeEmergency.category.toUpperCase()}`,
+        body: activeEmergency.description,
+        priority: 'urgent',
+        category: activeEmergency.category,
+        isEmergency: true,
+        senderName: activeEmergency.reporterName,
+        senderPhone: activeEmergency.reporterPhone,
+        sentAt: activeEmergency.createdAt,
+        photoUrl: activeEmergency.photoUrl,
+        link: 'home',
+      });
+    } else if (liveBroadcast) {
+      triggerUrgentAlert({
+        id: liveBroadcast.id || `fcm_${Date.now()}`,
+        title: liveBroadcast.title,
+        body: liveBroadcast.body,
+        priority: liveBroadcast.priority,
+        topic: liveBroadcast.topic,
+        senderName: liveBroadcast.senderName,
+        sentAt: liveBroadcast.sentAt,
+        link: liveBroadcast.link,
+      });
+    }
+  };
 
   return (
     <div className="w-full h-full overflow-hidden flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] antialiased selection:bg-amber-200 dark:selection:bg-amber-800 selection:text-amber-900 dark:selection:text-amber-100 font-sans transition-colors duration-250">
@@ -222,7 +297,24 @@ function MandaliAppContent() {
       )}
 
       {/* Real-Time High-Priority Emergency Alert Banner */}
-      <EmergencyBanner emergencies={emergencies} />
+      <EmergencyBanner
+        emergencies={emergencies}
+        onOpenOverlay={(emergency) => {
+          triggerUrgentAlert({
+            id: emergency.id,
+            title: `EMERGENCY ALERT: ${emergency.category.toUpperCase()}`,
+            body: emergency.description,
+            priority: 'urgent',
+            category: emergency.category,
+            isEmergency: true,
+            senderName: emergency.reporterName,
+            senderPhone: emergency.reporterPhone,
+            sentAt: emergency.createdAt,
+            photoUrl: emergency.photoUrl,
+            link: 'home',
+          });
+        }}
+      />
 
       {/* Top Application Bar with Network Status & Local Cache Hub */}
       <Navbar
@@ -235,7 +327,71 @@ function MandaliAppContent() {
         isOnline={isOnline}
         offlineSince={offlineSince}
         onCheckConnection={checkConnection}
+        hasUrgentAlert={hasActiveAlert}
+        onOpenUrgentAlert={handleOpenActiveAlert}
       />
+
+      {/* Real-Time FCM Push Notification Broadcast Alert Bar */}
+      {liveBroadcast && (
+        <div className="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white px-4 py-2.5 text-xs shadow-md flex items-center justify-between gap-3 animate-in slide-in-from-top-2 sticky top-0 z-40">
+          <div
+            onClick={() => {
+              triggerUrgentAlert({
+                id: liveBroadcast.id || `fcm_${Date.now()}`,
+                title: liveBroadcast.title,
+                body: liveBroadcast.body,
+                priority: liveBroadcast.priority,
+                topic: liveBroadcast.topic,
+                senderName: liveBroadcast.senderName,
+                sentAt: liveBroadcast.sentAt,
+                link: liveBroadcast.link,
+              });
+            }}
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer hover:opacity-95"
+            title="Click to view full Urgent Alert Overlay"
+          >
+            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <BellRing className="w-4 h-4 text-white animate-bounce" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-extrabold uppercase tracking-wider text-[9px] bg-white/20 px-1.5 py-0.5 rounded">
+                  FCM Push Broadcast
+                </span>
+                <span className="text-[11px] opacity-80 truncate">from {liveBroadcast.senderName}</span>
+              </div>
+              <p className="font-bold truncate text-xs sm:text-sm">{liveBroadcast.title}</p>
+              <p className="text-[11px] opacity-90 truncate max-w-md">{liveBroadcast.body}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                triggerUrgentAlert({
+                  id: liveBroadcast.id || `fcm_${Date.now()}`,
+                  title: liveBroadcast.title,
+                  body: liveBroadcast.body,
+                  priority: liveBroadcast.priority,
+                  topic: liveBroadcast.topic,
+                  senderName: liveBroadcast.senderName,
+                  sentAt: liveBroadcast.sentAt,
+                  link: liveBroadcast.link,
+                });
+              }}
+              className="px-3 py-1 rounded-lg bg-white text-red-700 hover:bg-white/90 text-xs font-bold transition shadow-xs cursor-pointer"
+            >
+              Alert Overlay
+            </button>
+            <button
+              onClick={() => setLiveBroadcast(null)}
+              className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10"
+              title="Dismiss broadcast"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Persistent Offline Outage Alert Banner */}
       {!isOnline && !offlineBannerDismissed && (
@@ -325,6 +481,7 @@ function MandaliAppContent() {
               announcements={announcements}
               onOpenAuth={() => setShowAuthModal(true)}
               onNavigate={setCurrentView}
+              onOpenUrgentAlert={triggerUrgentAlert}
             />
           )}
 
@@ -339,6 +496,7 @@ function MandaliAppContent() {
             <ProfileView
               onOpenAuth={() => setShowAuthModal(true)}
               onOpenJoin={() => setShowJoinModal(true)}
+              onNavigate={setCurrentView}
             />
           )}
 
@@ -397,6 +555,19 @@ function MandaliAppContent() {
           onClose={() => setShowAuthModal(false)}
         />
       </ErrorBoundary>
+
+      {/* Real-Time Urgent Alert Overlay for High-Priority Broadcasts & Emergencies */}
+      <UrgentAlertOverlay
+        alert={urgentAlert}
+        onDismiss={() => setUrgentAlert(null)}
+        onNavigate={(view) => {
+          setCurrentView(view);
+          setUrgentAlert(null);
+        }}
+        onCallPhone={(phone) => {
+          window.location.href = `tel:${phone}`;
+        }}
+      />
     </div>
   );
 }

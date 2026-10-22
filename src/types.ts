@@ -171,6 +171,8 @@ export interface Announcement {
   eventDate?: string;
   eventLocation?: string;
   isEvent?: boolean;
+  priority?: 'urgent' | 'high' | 'normal';
+  isUrgent?: boolean;
 }
 
 export interface NotificationItem {

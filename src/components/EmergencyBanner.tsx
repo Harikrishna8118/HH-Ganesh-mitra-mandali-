@@ -6,9 +6,10 @@ import type { EmergencyReport } from '../types.ts';
 
 interface EmergencyBannerProps {
   emergencies: EmergencyReport[];
+  onOpenOverlay?: (emergency: EmergencyReport) => void;
 }
 
-export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ emergencies }) => {
+export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ emergencies, onOpenOverlay }) => {
   const { currentUser, isAdmin } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -40,19 +41,32 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ emergencies })
     <div className="bg-red-600 text-white border-b-2 border-red-700 shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-2.5">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            onClick={() => onOpenOverlay?.(current)}
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer hover:opacity-95"
+            title="Click to open Urgent Alert Overlay"
+          >
             <span className="flex h-3 w-3 shrink-0 rounded-full bg-white animate-ping" />
             <div className="min-w-0">
               <span className="text-xs font-black uppercase tracking-wider bg-red-800 px-1.5 py-0.5 rounded text-white mr-2">
                 ACTIVE EMERGENCY: {current.category}
               </span>
-              <span className="text-xs font-medium truncate inline-block align-middle max-w-[240px] sm:max-w-md">
+              <span className="text-xs font-medium truncate inline-block align-middle max-w-[200px] sm:max-w-md underline underline-offset-2">
                 {current.description}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {onOpenOverlay && (
+              <button
+                type="button"
+                onClick={() => onOpenOverlay(current)}
+                className="px-2 py-0.5 rounded bg-white text-red-700 text-xs font-bold shadow-xs hover:bg-red-50 transition"
+              >
+                Alert Overlay
+              </button>
+            )}
             <button
               onClick={() => setExpanded(!expanded)}
               className="text-xs text-red-100 hover:text-white flex items-center gap-1 font-semibold underline underline-offset-2"

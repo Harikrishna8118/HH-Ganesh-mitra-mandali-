@@ -12,21 +12,27 @@ import {
   Sparkles,
   Check,
   AlertCircle,
+  Bell,
+  ShieldAlert,
 } from 'lucide-react';
 import { createAnnouncement, deleteAnnouncement } from '../services/mandaliService.ts';
 import { sendManualReminder } from '../services/reminderService.ts';
+import { broadcastUrgentPushNotification } from '../services/fcmService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { ConfirmModal } from '../components/ConfirmModal.tsx';
 import type { Announcement } from '../types.ts';
+import type { UrgentAlertData } from '../components/UrgentAlertOverlay.tsx';
 
 interface AnnouncementsViewProps {
   announcements: Announcement[];
   onOpenAuth: () => void;
   onNavigate?: (view: string) => void;
+  onOpenUrgentAlert?: (alert: UrgentAlertData) => void;
 }
 
 const CATEGORIES = [
+  'Urgent Notice',
   'Meeting Announcement',
   'Pooja Schedule',
   'Festival Timings',
@@ -39,22 +45,25 @@ const CATEGORIES = [
 export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
   announcements = [],
   onOpenAuth,
+  onOpenUrgentAlert,
 }) => {
   const { currentUser, isLoggedIn } = useAuth();
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'events' | 'pinned'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'urgent' | 'events' | 'pinned'>('all');
   
   // Form fields
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [content, setContent] = useState('');
   const [isPinned, setIsPinned] = useState(false);
+  const [isUrgent, setIsUrgent] = useState(false);
   const [isScheduledEvent, setIsScheduledEvent] = useState(false);
   const [eventDate, setEventDate] = useState('');
   const [eventLocation, setEventLocation] = useState('Ganesh Mandapa, H. Hosahalli');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reminderSendingId, setReminderSendingId] = useState<string | null>(null);
   const [reminderFeedback, setReminderFeedback] = useState<string | null>(null);
+  const [sendPushNotification, setSendPushNotification] = useState(true);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [announcementToDeleteId, setAnnouncementToDeleteId] = useState<string | null>(null);
 
@@ -91,6 +100,8 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
           authorId: currentUser.uid,
           authorName: currentUser.fullName || 'Mandali Member',
           isPinned,
+          isUrgent,
+          priority: isUrgent ? 'urgent' : isPinned ? 'high' : 'normal',
           isEvent: isScheduledEvent,
           eventDate: isScheduledEvent && eventDate ? new Date(eventDate).toISOString() : undefined,
           eventLocation: isScheduledEvent ? eventLocation.trim() || 'Ganesh Mandapa, H. Hosahalli' : undefined,
@@ -98,10 +109,29 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
         currentUser.uid,
         currentUser.fullName || 'Mandali Member'
       );
+
+      // Broadcast Real-Time Push Notification via FCM to all village devices
+      if (sendPushNotification || isUrgent) {
+        try {
+          await broadcastUrgentPushNotification({
+            title: isUrgent ? `🚨 URGENT: ${title.trim()}` : title.trim(),
+            body: content.trim().slice(0, 180),
+            priority: isUrgent ? 'urgent' : isPinned ? 'high' : 'normal',
+            topic: isUrgent ? 'urgent' : 'announcements',
+            link: 'announcements',
+            senderId: currentUser.uid,
+            senderName: currentUser.fullName || 'Mandali Admin',
+          });
+        } catch {
+          // Non-blocking notification dispatch
+        }
+      }
+
       setShowModal(false);
       setTitle('');
       setContent('');
       setIsPinned(false);
+      setIsUrgent(false);
       setIsScheduledEvent(false);
     } catch (err: any) {
       setPublishError(err?.message || 'Failed to publish announcement. Please try again.');
@@ -157,7 +187,21 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
     }
   };
 
+  const isAnnouncementUrgent = (a: Announcement) => {
+    return (
+      a.priority === 'urgent' ||
+      a.isUrgent === true ||
+      a.category === 'Urgent Notice' ||
+      a.category === 'Volunteer Requirement' ||
+      a.title.toLowerCase().includes('urgent') ||
+      a.title.toLowerCase().includes('emergency')
+    );
+  };
+
   const filteredAnnouncements = useMemo(() => {
+    if (activeTab === 'urgent') {
+      return announcements.filter(isAnnouncementUrgent);
+    }
     if (activeTab === 'events') {
       return announcements.filter((a) => !!a.eventDate);
     }
@@ -167,6 +211,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
     return announcements;
   }, [announcements, activeTab]);
 
+  const urgentCount = announcements.filter(isAnnouncementUrgent).length;
   const scheduledEventsCount = announcements.filter((a) => !!a.eventDate).length;
   const pinnedCount = announcements.filter((a) => a.isPinned).length;
 
@@ -207,10 +252,10 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('all')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === 'all'
               ? 'bg-slate-900 text-white shadow-2xs'
               : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
@@ -219,10 +264,21 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
           All Notices ({announcements.length})
         </button>
         <button
+          onClick={() => setActiveTab('urgent')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'urgent'
+              ? 'bg-red-600 text-white shadow-2xs'
+              : 'bg-white text-red-700 hover:text-red-900 border border-red-200 hover:bg-red-50'
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5" />
+          <span>🚨 Urgent Alerts ({urgentCount})</span>
+        </button>
+        <button
           onClick={() => setActiveTab('events')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
             activeTab === 'events'
-              ? 'bg-red-700 text-white shadow-2xs'
+              ? 'bg-blue-700 text-white shadow-2xs'
               : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
           }`}
         >
@@ -231,7 +287,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
         </button>
         <button
           onClick={() => setActiveTab('pinned')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
             activeTab === 'pinned'
               ? 'bg-amber-600 text-white shadow-2xs'
               : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
@@ -245,9 +301,17 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
       {filteredAnnouncements.length === 0 ? (
         <EmptyState
           icon={Megaphone}
-          title={activeTab === 'events' ? 'No scheduled community events yet.' : 'No announcements published yet.'}
+          title={
+            activeTab === 'urgent'
+              ? 'No active urgent alerts at this time.'
+              : activeTab === 'events'
+              ? 'No scheduled community events yet.'
+              : 'No announcements published yet.'
+          }
           description={
-            activeTab === 'events'
+            activeTab === 'urgent'
+              ? 'All emergency announcements and volunteer calls for H. Hosahalli will appear here.'
+              : activeTab === 'events'
               ? 'Schedule pooja times, volunteer gatherings, or cultural programs with automated 24-hour reminders.'
               : 'Mandali members can post pooja schedules, meeting minutes, and volunteer alerts for H. Hosahalli.'
           }
@@ -258,6 +322,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
       ) : (
         <div className="space-y-4">
           {filteredAnnouncements.map((item) => {
+            const isUrgentNotice = isAnnouncementUrgent(item);
             const hasEvent = !!item.eventDate;
             const now = Date.now();
             const eventTime = hasEvent ? new Date(item.eventDate!).getTime() : 0;
@@ -269,7 +334,9 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
               <div
                 key={item.id}
                 className={`p-5 bg-white rounded-2xl border transition-all ${
-                  hasEvent
+                  isUrgentNotice
+                    ? 'border-red-400 bg-gradient-to-r from-red-50/70 via-white to-amber-50/50 shadow-md ring-1 ring-red-400/40'
+                    : hasEvent
                     ? isWithin24h
                       ? 'border-amber-400 bg-gradient-to-r from-amber-50/50 via-white to-orange-50/40 shadow-xs ring-1 ring-amber-300'
                       : 'border-blue-200/90 shadow-2xs'
@@ -281,6 +348,13 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {isUrgentNotice && (
+                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-300 animate-pulse">
+                          <ShieldAlert className="w-3 h-3 text-red-600" />
+                          Urgent Notice
+                        </span>
+                      )}
+
                       {item.isPinned && (
                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
                           <Pin className="w-3 h-3 text-amber-700" />
@@ -312,15 +386,40 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
                     </h3>
                   </div>
 
-                  {isLoggedIn && (
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                      title="Delete notice"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isUrgentNotice && onOpenUrgentAlert && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onOpenUrgentAlert({
+                            id: item.id,
+                            title: item.title,
+                            body: item.content,
+                            priority: 'urgent',
+                            category: item.category,
+                            senderName: item.authorName,
+                            sentAt: item.createdAt,
+                            link: 'announcements',
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                        title="Open Urgent Alert Overlay"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5" />
+                        <span>Alert View</span>
+                      </button>
+                    )}
+
+                    {isLoggedIn && (
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                        title="Delete notice"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Scheduled Event Badge Card */}
@@ -530,6 +629,53 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
                 <label htmlFor="pinNotice" className="text-xs text-slate-700 font-medium cursor-pointer">
                   Pin this notice to the top of announcements
                 </label>
+              </div>
+
+              {/* Critical / Urgent Alert Flag Checkbox */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-red-100 to-rose-50 border border-red-300 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 animate-bounce" />
+                  <div>
+                    <label htmlFor="isUrgentAlert" className="text-xs text-red-950 font-black block cursor-pointer">
+                      Mark as Critical / Urgent Alert
+                    </label>
+                    <span className="text-[10px] text-red-700 block">
+                      Triggers instant Urgent Alert Overlay beacon across community screens
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  id="isUrgentAlert"
+                  checked={isUrgent}
+                  onChange={(e) => {
+                    setIsUrgent(e.target.checked);
+                    if (e.target.checked) setSendPushNotification(true);
+                  }}
+                  className="w-4 h-4 text-red-600 rounded border-red-300"
+                />
+              </div>
+
+              {/* Real-Time Push Notification FCM Broadcast Checkbox */}
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-red-600 shrink-0" />
+                  <div>
+                    <label htmlFor="sendPush" className="text-xs text-red-950 font-bold block cursor-pointer">
+                      Send Real-Time Push Notification (FCM)
+                    </label>
+                    <span className="text-[10px] text-red-700 block">
+                      Dispatches instant alert chime & device notification to all village members
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  id="sendPush"
+                  checked={sendPushNotification}
+                  onChange={(e) => setSendPushNotification(e.target.checked)}
+                  className="w-4 h-4 text-red-600 rounded border-slate-300"
+                />
               </div>
 
               <div className="flex gap-2.5 pt-2">

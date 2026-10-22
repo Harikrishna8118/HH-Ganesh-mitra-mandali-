@@ -23,17 +23,28 @@ import {
   Monitor,
   Palette,
   Laptop,
+  Bell,
+  BellRing,
+  Radio,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useTheme } from '../context/ThemeContext.tsx';
 import { updateProfile } from '../services/mandaliService.ts';
+import {
+  registerPushNotifications,
+  getNotificationSubscriptionState,
+  playAlertChime,
+  getDeviceType,
+} from '../services/fcmService.ts';
 import { MemberQRModal } from '../components/MemberQRModal.tsx';
 import { ExitMandaliModal } from '../components/ExitMandaliModal.tsx';
+import { UrgentAlertOverlay, type UrgentAlertData } from '../components/UrgentAlertOverlay.tsx';
 import type { MemberProfile } from '../types.ts';
 
 interface ProfileViewProps {
   onOpenAuth: () => void;
   onOpenJoin: () => void;
+  onNavigate?: (view: string) => void;
 }
 
 const DEVOTIONAL_AVATARS = [
@@ -54,7 +65,7 @@ const AVAILABLE_AREAS = [
   'Youth Volunteer',
 ];
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin, onNavigate }) => {
   const {
     currentUser,
     isLoggedIn,
@@ -81,6 +92,51 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
   const [showExitModal, setShowExitModal] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
   const [rejoinSuccess, setRejoinSuccess] = useState(false);
+
+  // Firebase Cloud Messaging Push Notification State
+  const [pushStatus, setPushStatus] = useState(() => getNotificationSubscriptionState());
+  const [isRegisteringPush, setIsRegisteringPush] = useState(false);
+  const [pushFeedback, setPushFeedback] = useState<string | null>(null);
+  const [testOverlayAlert, setTestOverlayAlert] = useState<UrgentAlertData | null>(null);
+
+  const handleTogglePushNotifications = async () => {
+    setIsRegisteringPush(true);
+    setPushFeedback(null);
+    try {
+      if (!pushStatus.isEnabled) {
+        const res = await registerPushNotifications(currentUser?.uid, currentUser?.fullName);
+        if (res.success) {
+          setPushStatus(getNotificationSubscriptionState());
+          setPushFeedback('✅ Push notifications enabled! Device registered with Firebase Cloud Messaging.');
+          playAlertChime();
+        } else {
+          setPushFeedback(`⚠️ ${res.error || 'Could not enable push notifications.'}`);
+        }
+      } else {
+        localStorage.setItem('gmm_notifications_enabled', 'false');
+        setPushStatus(getNotificationSubscriptionState());
+        setPushFeedback('Push notifications muted on this device.');
+      }
+    } finally {
+      setIsRegisteringPush(false);
+    }
+  };
+
+  const handleTestPushNotification = () => {
+    playAlertChime();
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('🕉️ Shri Ganesh Mitra Mandali (Test)', {
+          body: 'Real-time push notifications are active for urgent announcements and community updates!',
+          icon: '/favicon.svg',
+          badge: '/favicon.svg',
+        });
+      } catch {
+        // Fallback
+      }
+    }
+    setPushFeedback('🔔 Test alert triggered with temple chime and device notification!');
+  };
 
   const memberProfile: MemberProfile | null = currentUser
     ? {
@@ -487,6 +543,119 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
         </div>
       </div>
 
+      {/* Firebase Cloud Messaging Real-Time Push Notification Settings */}
+      <div className="p-6 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-card)] shadow-2xs space-y-4 transition-colors duration-250">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border-default)] pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 shadow-xs">
+              <BellRing className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                Firebase Real-Time Push Notifications
+              </h2>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                Receive instant alerts for urgent announcements, festival poojas, and community updates
+              </p>
+            </div>
+          </div>
+
+          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
+            pushStatus.isEnabled
+              ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+          }`}>
+            {pushStatus.isEnabled ? '● Active' : '○ Disabled'}
+          </span>
+        </div>
+
+        {/* Status & Action Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[var(--bg-surface-muted)] border border-[var(--border-default)]">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                Device Push Channel
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 uppercase">
+                {getDeviceType()}
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)]">
+              {pushStatus.isEnabled
+                ? 'Registered with Firebase Cloud Messaging (FCM). Emergency chimes and notice banners will ring on this device.'
+                : 'Turn on notifications to never miss high-priority mandali broadcasts, emergencies, or meeting alerts.'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            {pushStatus.isEnabled && (
+              <button
+                type="button"
+                onClick={handleTestPushNotification}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                title="Trigger a test alert chime and system notification"
+              >
+                <Radio className="w-3.5 h-3.5 text-amber-600 animate-ping" />
+                <span>Test Chime</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setTestOverlayAlert({
+                  id: `urgent_test_${Date.now()}`,
+                  title: '🚨 Special Visarjana Procession & Emergency Protocol',
+                  body: 'All H. Hosahalli villagers and mandali volunteers please note: Evening pooja procession begins at 7:00 PM from Ganesh Mandapa. Emergency medical desk is stationed near the North arch. Please yield right of way to temple ratha.',
+                  priority: 'urgent',
+                  category: 'Urgent Announcement',
+                  senderName: currentUser?.fullName || 'Mandali Administration',
+                  senderPhone: currentUser?.mobileNumber || '+91 98450 12345',
+                  sentAt: new Date().toISOString(),
+                  link: 'announcements',
+                });
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-900 dark:text-red-200 border border-red-300 dark:border-red-700 transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+              title="Preview the high-priority Urgent Alert Overlay"
+            >
+              <BellRing className="w-3.5 h-3.5 text-red-600 animate-pulse" />
+              <span>Preview Alert Overlay</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isRegisteringPush}
+              onClick={handleTogglePushNotifications}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 ${
+                pushStatus.isEnabled
+                  ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200'
+                  : 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20'
+              }`}
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>{isRegisteringPush ? 'Registering...' : pushStatus.isEnabled ? 'Mute Alerts' : 'Enable FCM Push'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Feedback message */}
+        {pushFeedback && (
+          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs font-medium text-amber-900 dark:text-amber-200 flex items-center justify-between animate-in fade-in">
+            <span>{pushFeedback}</span>
+            <button onClick={() => setPushFeedback(null)} className="text-amber-600 hover:text-amber-800 text-xs font-bold px-1">
+              ✕
+            </button>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-[var(--text-muted)]">
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Subscribed Topics:</span>
+          <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold text-[10px]">🚨 Urgent Announcements</span>
+          <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold text-[10px]">🕉️ Festival Programs</span>
+          <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">🏛️ Community Safety</span>
+        </div>
+      </div>
+
       {/* Profile Details Edit Form: User can edit from mandali as their wish */}
       <div className="p-6 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-card)] shadow-2xs space-y-5 transition-colors duration-250">
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border-default)] pb-3">
@@ -765,6 +934,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
       <ExitMandaliModal
         isOpen={showExitModal}
         onClose={() => setShowExitModal(false)}
+      />
+
+      {/* URGENT ALERT OVERLAY COMPONENT (PREVIEW & LIVE NOTIFICATIONS) */}
+      <UrgentAlertOverlay
+        alert={testOverlayAlert}
+        onDismiss={() => setTestOverlayAlert(null)}
+        onNavigate={(v) => {
+          if (onNavigate) onNavigate(v);
+          setTestOverlayAlert(null);
+        }}
+        onCallPhone={(phone) => {
+          window.location.href = `tel:${phone}`;
+        }}
       />
     </div>
   );

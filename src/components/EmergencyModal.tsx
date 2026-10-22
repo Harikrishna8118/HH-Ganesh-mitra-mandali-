@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldAlert, AlertTriangle, X, PhoneCall, Camera, CheckCircle } from 'lucide-react';
 import { reportEmergency } from '../services/mandaliService.ts';
+import { broadcastUrgentPushNotification } from '../services/fcmService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import type { EmergencyReport } from '../types.ts';
 
@@ -58,6 +59,21 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose,
         description: description.trim(),
         photoUrl: photoUrl.trim() || undefined,
       });
+
+      // Broadcast Urgent Push Notification to all village devices
+      try {
+        await broadcastUrgentPushNotification({
+          title: `🚨 EMERGENCY ALERT: ${category.toUpperCase()}`,
+          body: `${description.trim().slice(0, 160)} (Reported by: ${reporterName.trim()})`,
+          priority: 'urgent',
+          topic: 'emergencies',
+          link: 'home',
+          senderName: reporterName.trim(),
+        });
+      } catch {
+        // Non-blocking notification
+      }
+
       setStep('success');
       setTimeout(() => {
         onSuccess();

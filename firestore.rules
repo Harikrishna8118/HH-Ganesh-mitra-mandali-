@@ -78,5 +78,15 @@ service cloud.firestore {
     match /admin_actions/{actionId} {
       allow read, write: if true;
     }
+
+    // Firebase Cloud Messaging Device Tokens & Subscriptions
+    match /fcm_tokens/{tokenId} {
+      allow read, write: if true;
+    }
+
+    // Real-Time Push Broadcast Queue
+    match /push_broadcasts/{broadcastId} {
+      allow read, write: if true;
+    }
   }
 }
