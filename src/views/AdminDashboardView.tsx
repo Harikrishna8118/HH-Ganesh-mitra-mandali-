@@ -22,6 +22,7 @@ import {
   Radio,
   Send,
   BellRing,
+  HardDrive,
 } from 'lucide-react';
 import {
   approveJoinRequest,
@@ -59,6 +60,7 @@ interface AdminDashboardViewProps {
   announcements: Announcement[];
   auditLogs: AdminAction[];
   onOpenEmergency: () => void;
+  onNavigate?: (view: string) => void;
 }
 
 type AdminTab =
@@ -80,6 +82,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   announcements = [],
   auditLogs = [],
   onOpenEmergency,
+  onNavigate,
 }) => {
   const { currentUser, isAdmin } = useAuth();
   const [tab, setTab] = useState<AdminTab>('overview');
@@ -446,6 +449,20 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   Review administrative decisions
                 </div>
               </button>
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('drive')}
+                  className="p-3 rounded-xl border border-slate-200 hover:border-amber-400 bg-amber-50/40 text-left transition"
+                >
+                  <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <HardDrive className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Google Drive Hub</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Manage circulars, receipts & photos
+                  </div>
+                </button>
+              )}
             </div>
           </div>
 

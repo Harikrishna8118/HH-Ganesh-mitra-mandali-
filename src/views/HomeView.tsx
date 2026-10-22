@@ -23,6 +23,7 @@ import {
   Vote,
   Activity,
   BellRing,
+  HardDrive,
 } from 'lucide-react';
 import { getUpcoming24hItems } from '../services/reminderService.ts';
 
@@ -263,6 +264,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
               REPORT ISSUE
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5">Electricity, sound, water</span>
+          </button>
+
+          {/* DRIVE ARCHIVE */}
+          <button
+            onClick={() => onNavigate('drive')}
+            className="flex flex-col items-start p-4 bg-white hover:bg-amber-50/50 rounded-2xl border border-slate-200/90 shadow-xs hover:border-amber-300 transition text-left group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+              <HardDrive className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <span className="text-xs font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
+              DRIVE ARCHIVE
+            </span>
+            <span className="text-[11px] text-slate-500 mt-0.5">Circulars, receipts, photos</span>
           </button>
 
           {/* EMERGENCY */}

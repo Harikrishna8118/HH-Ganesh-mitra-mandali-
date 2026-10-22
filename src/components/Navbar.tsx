@@ -14,6 +14,7 @@ import {
   WifiOff,
   Sun,
   Moon,
+  HardDrive,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -109,6 +110,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               Announcements
+            </button>
+            <button
+              onClick={() => onNavigate('drive')}
+              className={`whitespace-nowrap shrink-0 flex items-center gap-1.5 transition-colors ${
+                currentView === 'drive' ? 'text-red-600 dark:text-red-400 font-semibold' : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <HardDrive className="w-4 h-4 text-amber-500" />
+              <span>Drive</span>
             </button>
             <button
               onClick={() => onNavigate('profile')}

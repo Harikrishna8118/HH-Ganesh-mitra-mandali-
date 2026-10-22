@@ -27,6 +27,7 @@ import { IssuesView } from './views/IssuesView.tsx';
 import { ProfileView } from './views/ProfileView.tsx';
 import { NotificationsView } from './views/NotificationsView.tsx';
 import { AdminDashboardView } from './views/AdminDashboardView.tsx';
+import { DriveView } from './views/DriveView.tsx';
 
 // Services
 import {
@@ -509,6 +510,13 @@ function MandaliAppContent() {
             />
           )}
 
+          {currentView === 'drive' && (
+            <DriveView
+              onOpenAuth={() => setShowAuthModal(true)}
+              onNavigate={setCurrentView}
+            />
+          )}
+
           {currentView === 'admin' && (
             <AdminDashboardView
               settings={settings}
@@ -520,6 +528,7 @@ function MandaliAppContent() {
               announcements={announcements}
               auditLogs={auditLogs}
               onOpenEmergency={() => setShowEmergencyModal(true)}
+              onNavigate={setCurrentView}
             />
           )}
         </ErrorBoundary>
