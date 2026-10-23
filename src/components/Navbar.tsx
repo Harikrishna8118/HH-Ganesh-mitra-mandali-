@@ -15,7 +15,10 @@ import {
   Sun,
   Moon,
   HardDrive,
+  Palette,
+  Sparkles,
 } from 'lucide-react';
+import { ThemeSelectorModal } from './ThemeSelectorModal.tsx';
 
 interface NavbarProps {
   currentView: string;
@@ -45,8 +48,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenUrgentAlert,
 }) => {
   const { currentUser, isLoggedIn, isAdmin, isMember } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, isGlass, toggleTheme } = useTheme();
   const [showNetworkModal, setShowNetworkModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   return (
     <>
@@ -172,15 +176,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Quick Dark Mode Toggle */}
+            {/* Theme Selector Palette Modal Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowThemeModal(true)}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 transition-colors relative cursor-pointer active:scale-95"
+              aria-label="Choose devotional visual theme"
+              title="Theme Studio: Liquid Glass, Mandir Saffron, Midnight Utsav..."
+            >
+              {isGlass ? (
+                <Sparkles className="w-4 h-4 text-sky-400 animate-pulse" />
+              ) : (
+                <Palette className="w-4 h-4 text-amber-500 hover:rotate-12 transition-transform" />
+              )}
+            </button>
+
+            {/* Quick Dark / Glass Toggle */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 transition-colors"
-              aria-label="Toggle system-wide dark mode"
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer active:scale-95"
+              aria-label="Quick toggle theme"
+              title={isGlass ? "Theme: Liquid Glass" : isDark ? "Switch to Light Mode" : "Switch to Glass Mode"}
             >
-              {isDark ? (
+              {isGlass ? (
+                <Sparkles className="w-4 h-4 text-sky-400" />
+              ) : isDark ? (
                 <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform duration-300" />
               ) : (
                 <Moon className="w-4 h-4 text-slate-600 hover:-rotate-12 transition-transform duration-300" />
@@ -262,6 +283,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         isOnline={isOnline}
         offlineSince={offlineSince}
         onCheckConnection={onCheckConnection || (() => Promise.resolve(isOnline))}
+      />
+
+      {/* Visual Theme Studio Modal */}
+      <ThemeSelectorModal
+        isOpen={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
       />
     </>
   );

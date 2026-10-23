@@ -173,6 +173,7 @@ export interface Announcement {
   isEvent?: boolean;
   priority?: 'urgent' | 'high' | 'normal';
   isUrgent?: boolean;
+  imageUrl?: string;
 }
 
 export interface NotificationItem {

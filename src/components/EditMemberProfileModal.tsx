@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { updateProfile } from '../services/mandaliService.ts';
+import { ImageGalleryPicker } from './ImageGalleryPicker.tsx';
 import type { MemberProfile } from '../types.ts';
 
 interface EditMemberProfileModalProps {
@@ -232,57 +233,15 @@ export const EditMemberProfileModal: React.FC<EditMemberProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Avatar Photo URL & Quick Devotional Presets */}
-          <div>
-            <label className="block text-xs font-bold text-slate-800 mb-1">
-              Profile Photo URL
-            </label>
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://example.com/photo.jpg"
-                className="flex-1 text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-              />
-              {avatarUrl && (
-                <button
-                  type="button"
-                  onClick={() => setAvatarUrl('')}
-                  className="px-2 py-2 text-xs text-slate-500 hover:text-red-600 border border-slate-200 rounded-xl"
-                  title="Clear photo"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Quick Presets */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-[10px] font-bold text-slate-500 shrink-0">
-                Quick Avatars:
-              </span>
-              {DEVOTIONAL_AVATARS.map((av) => (
-                <button
-                  key={av.label}
-                  type="button"
-                  onClick={() => setAvatarUrl(av.url)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-medium transition shrink-0 ${
-                    avatarUrl === av.url
-                      ? 'bg-amber-100 border-amber-500 text-amber-900 font-bold'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <img
-                    src={av.url}
-                    alt={av.label}
-                    className="w-4 h-4 rounded-full object-cover"
-                  />
-                  <span>{av.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Profile Photo directly from Gallery or Camera */}
+          <ImageGalleryPicker
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            label="Profile Photo / Avatar"
+            helperText="Add directly from your device photo gallery or take a new picture"
+            shape="circle"
+            presets={DEVOTIONAL_AVATARS}
+          />
 
           {/* Contact Privacy Toggle */}
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl">

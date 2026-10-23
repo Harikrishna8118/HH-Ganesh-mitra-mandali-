@@ -3,6 +3,7 @@ import { ShieldAlert, AlertTriangle, X, PhoneCall, Camera, CheckCircle } from 'l
 import { reportEmergency } from '../services/mandaliService.ts';
 import { broadcastUrgentPushNotification } from '../services/fcmService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { openDialer } from '../utils/phoneUtils.ts';
 import type { EmergencyReport } from '../types.ts';
 
 interface EmergencyModalProps {
@@ -121,12 +122,35 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose,
                 </div>
               </div>
 
-              {/* Official Helplines */}
-              <div className="flex items-center justify-between text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
-                <span>Direct Services:</span>
-                <span className="text-red-700">Police: 112</span>
-                <span className="text-red-700">Ambulance: 108</span>
-                <span className="text-red-700">Fire: 101</span>
+              {/* Official Helplines with Direct Dialpad Redirection */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Direct Dial:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={(e) => openDialer('112', e)}
+                    className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-red-100 hover:bg-red-200 active:scale-95 text-red-800 border border-red-300 flex items-center gap-1 transition cursor-pointer"
+                    title="Dial National Emergency Police (112)"
+                  >
+                    <span>Police: 112</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => openDialer('108', e)}
+                    className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-emerald-100 hover:bg-emerald-200 active:scale-95 text-emerald-800 border border-emerald-300 flex items-center gap-1 transition cursor-pointer"
+                    title="Dial Ambulance Helpline (108)"
+                  >
+                    <span>Ambulance: 108</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => openDialer('101', e)}
+                    className="px-2.5 py-1 text-[11px] font-black rounded-lg bg-orange-100 hover:bg-orange-200 active:scale-95 text-orange-800 border border-orange-300 flex items-center gap-1 transition cursor-pointer"
+                    title="Dial Fire Emergency (101)"
+                  >
+                    <span>Fire: 101</span>
+                  </button>
+                </div>
               </div>
 
               {/* Category */}

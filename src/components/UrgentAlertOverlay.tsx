@@ -15,8 +15,11 @@ import {
   MapPin,
   HandHeart,
   ShieldCheck,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
 import { playAlertChime } from '../services/fcmService.ts';
+import { openDialer, openWhatsApp } from '../utils/phoneUtils.ts';
 
 export interface UrgentAlertData {
   id: string;
@@ -319,14 +322,35 @@ export const UrgentAlertOverlay: React.FC<UrgentAlertOverlayProps> = ({
               </div>
 
               {alert.senderPhone ? (
-                <a
-                  href={`tel:${alert.senderPhone}`}
-                  onClick={() => onCallPhone?.(alert.senderPhone!)}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer"
-                >
-                  <PhoneCall className="w-3.5 h-3.5" />
-                  <span>Call Now</span>
-                </a>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      onCallPhone?.(alert.senderPhone!);
+                      openDialer(alert.senderPhone!, e);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+                    title="Open Phone Dialpad"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Dial</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) =>
+                      openWhatsApp(
+                        alert.senderPhone!,
+                        `Regarding urgent broadcast: "${alert.title}" (Ganesh Mitra Mandali H. Hosahalli)...`,
+                        e
+                      )
+                    }
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 border border-emerald-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+                    title="Open WhatsApp Chat"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"

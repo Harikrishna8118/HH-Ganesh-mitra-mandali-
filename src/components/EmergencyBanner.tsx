@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Check, ChevronDown, ChevronUp, Phone } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Phone, MessageCircle } from 'lucide-react';
 import { resolveEmergency } from '../services/mandaliService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { openDialer, openWhatsApp } from '../utils/phoneUtils.ts';
 import type { EmergencyReport } from '../types.ts';
 
 interface EmergencyBannerProps {
@@ -82,12 +83,33 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ emergencies, o
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-red-700/60 p-3 rounded-lg">
               <div>
                 <p><strong>Reported By:</strong> {current.reporterName}</p>
-                <p className="flex items-center gap-1.5 mt-0.5">
-                  <Phone className="w-3.5 h-3.5" />
-                  <a href={`tel:${current.reporterPhone}`} className="underline font-semibold">
-                    {current.reporterPhone}
-                  </a>
-                </p>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <span className="font-semibold">{current.reporterPhone}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => openDialer(current.reporterPhone, e)}
+                    className="px-2 py-0.5 rounded bg-white text-red-700 hover:bg-red-50 text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                    title="Open Dialpad"
+                  >
+                    <Phone className="w-2.5 h-2.5" />
+                    <span>Dial</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) =>
+                      openWhatsApp(
+                        current.reporterPhone,
+                        `Namaskara ${current.reporterName}, regarding the emergency report for Shri Ganesh Mitra Mandali...`,
+                        e
+                      )
+                    }
+                    className="px-2 py-0.5 rounded bg-emerald-500 hover:bg-emerald-400 text-white text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                    title="WhatsApp Reporter"
+                  >
+                    <MessageCircle className="w-2.5 h-2.5" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
               </div>
               <div>
                 <p><strong>Time:</strong> {new Date(current.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>

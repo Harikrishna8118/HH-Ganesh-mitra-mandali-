@@ -21,6 +21,7 @@ import { broadcastUrgentPushNotification } from '../services/fcmService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { ConfirmModal } from '../components/ConfirmModal.tsx';
+import { ImageGalleryPicker } from '../components/ImageGalleryPicker.tsx';
 import type { Announcement } from '../types.ts';
 import type { UrgentAlertData } from '../components/UrgentAlertOverlay.tsx';
 
@@ -60,6 +61,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
   const [isScheduledEvent, setIsScheduledEvent] = useState(false);
   const [eventDate, setEventDate] = useState('');
   const [eventLocation, setEventLocation] = useState('Ganesh Mandapa, H. Hosahalli');
+  const [announcementImage, setAnnouncementImage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reminderSendingId, setReminderSendingId] = useState<string | null>(null);
   const [reminderFeedback, setReminderFeedback] = useState<string | null>(null);
@@ -105,6 +107,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
           isEvent: isScheduledEvent,
           eventDate: isScheduledEvent && eventDate ? new Date(eventDate).toISOString() : undefined,
           eventLocation: isScheduledEvent ? eventLocation.trim() || 'Ganesh Mandapa, H. Hosahalli' : undefined,
+          imageUrl: announcementImage || undefined,
         },
         currentUser.uid,
         currentUser.fullName || 'Mandali Member'
@@ -130,6 +133,7 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
       setShowModal(false);
       setTitle('');
       setContent('');
+      setAnnouncementImage('');
       setIsPinned(false);
       setIsUrgent(false);
       setIsScheduledEvent(false);
@@ -472,6 +476,15 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
                     )}
                   </div>
                 )}
+                {item.imageUrl && (
+                  <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200/80 shadow-2xs max-h-72">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="w-full h-full max-h-72 object-cover"
+                    />
+                  </div>
+                )}
 
                 <p className="mt-3 text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
                   {item.content}
@@ -617,6 +630,15 @@ export const AnnouncementsView: React.FC<AnnouncementsViewProps> = ({
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500"
                 />
               </div>
+
+              {/* Event / Notice Photo from Gallery */}
+              <ImageGalleryPicker
+                value={announcementImage}
+                onChange={setAnnouncementImage}
+                label="Event Photo / Banner (Optional)"
+                helperText="Select a photo directly from your device gallery"
+                shape="banner"
+              />
 
               <div className="flex items-center gap-2 pt-1">
                 <input

@@ -39,6 +39,8 @@ import {
 import { MemberQRModal } from '../components/MemberQRModal.tsx';
 import { ExitMandaliModal } from '../components/ExitMandaliModal.tsx';
 import { UrgentAlertOverlay, type UrgentAlertData } from '../components/UrgentAlertOverlay.tsx';
+import { ImageGalleryPicker } from '../components/ImageGalleryPicker.tsx';
+import { ThemeSelectorModal } from '../components/ThemeSelectorModal.tsx';
 import type { MemberProfile } from '../types.ts';
 
 interface ProfileViewProps {
@@ -76,7 +78,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
     switchRoleForTesting,
   } = useAuth();
 
-  const { theme, isDark, setTheme, toggleTheme } = useTheme();
+  const { theme, resolvedTheme, isDark, isGlass, setTheme, toggleTheme, availableThemes } = useTheme();
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   const [fullName, setFullName] = useState(currentUser?.fullName || '');
   const [villageAddress, setVillageAddress] = useState(currentUser?.villageAddress || '');
@@ -408,87 +411,111 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
             </div>
           </div>
 
-          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-            {isDark ? 'Dark Mode Active' : 'Light Mode Active'}
-          </span>
-        </div>
-
-        {/* 3-Way Segmented Theme Switcher */}
-        <div className="space-y-2">
-          <label className="block text-xs font-bold text-[var(--text-secondary)]">
-            Select Visual Mode
-          </label>
-          <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-[var(--border-default)]">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+              {isGlass ? 'Liquid Glass Active' : isDark ? 'Dark Mode Active' : 'Light Mode Active'}
+            </span>
             <button
               type="button"
-              onClick={() => setTheme('light')}
-              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                theme === 'light'
-                  ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              onClick={() => setShowThemeModal(true)}
+              className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+              title="Open full Theme Palette Picker"
             >
-              <Sun className={`w-4 h-4 ${theme === 'light' ? 'text-amber-600' : ''}`} />
-              <span>Light</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTheme('dark')}
-              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                theme === 'dark'
-                  ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-700'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Moon className={`w-4 h-4 ${theme === 'dark' ? 'text-amber-400' : ''}`} />
-              <span>Dark</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTheme('system')}
-              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                theme === 'system'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-300 dark:ring-slate-700'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Monitor className="w-4 h-4" />
-              <span>Auto</span>
+              <Palette className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">All Themes</span>
             </button>
           </div>
         </div>
 
-        {/* Interactive Quick Toggle Slider Row */}
-        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--bg-surface-muted)] border border-[var(--border-default)] transition-colors">
-          <div className="space-y-0.5">
-            <span className="text-xs font-bold text-[var(--text-primary)] block">
-              Dark Mode Quick Toggle
+        {/* Multi-Theme Palette Selector Grid */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-[var(--text-secondary)]">
+              Select Visual Theme
+            </label>
+            <span className="text-[10px] text-[var(--text-muted)]">
+              {availableThemes.length} Devotional Styles Available
             </span>
-            <span className="text-[11px] text-[var(--text-muted)] block">
-              {isDark
-                ? 'Deep midnight slate canvas with golden devotional illumination'
-                : 'Warm cream devotional canvas with crisp cards'}
-            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {availableThemes.map((t) => {
+              const isSelected = resolvedTheme === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTheme(t.id)}
+                  className={`p-2.5 rounded-2xl border text-left transition relative flex flex-col justify-between h-20 cursor-pointer ${
+                    isSelected
+                      ? 'border-amber-500 ring-2 ring-amber-500/40 bg-amber-500/10 shadow-xs'
+                      : 'border-[var(--border-subtle)] hover:border-[var(--border-accent)] bg-[var(--bg-surface-muted)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span
+                      className="w-5 h-5 rounded-lg border border-white/40 shadow-xs shrink-0"
+                      style={{ background: t.swatchBg }}
+                    />
+                    {isSelected && (
+                      <span className="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-bold">
+                        ✓
+                      </span>
+                    )}
+                    {t.isGlass && !isSelected && (
+                      <span className="text-[8px] font-black uppercase text-sky-400 bg-sky-950/60 px-1 rounded">
+                        Glass
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block text-xs font-bold text-[var(--text-primary)] truncate">
+                      {t.name}
+                    </span>
+                    <span className="block text-[9px] text-[var(--text-muted)] truncate">
+                      {t.id === 'glass' ? 'Frosted Acrylic' : t.isDark ? 'Dark Mode' : 'Light Mode'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           <button
             type="button"
-            role="switch"
-            aria-checked={isDark}
-            onClick={toggleTheme}
-            className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-250 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
-              isDark ? 'bg-amber-600' : 'bg-slate-300 dark:bg-slate-700'
+            onClick={() => setTheme('system')}
+            className={`w-full p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+              theme === 'system'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300'
+                : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)]'
             }`}
           >
-            <span
-              className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-250 ease-in-out flex items-center justify-center text-xs ${
-                isDark ? 'translate-x-6 text-amber-600' : 'translate-x-0 text-slate-500'
-              }`}
-            >
-              {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+            <Monitor className="w-4 h-4" />
+            <span>Follow Device System OS Theme (Auto)</span>
+          </button>
+        </div>
+
+        {/* Quick Liquid Glass Highlight Banner */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-900/20 via-indigo-900/15 to-amber-900/20 border border-sky-400/30 flex items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <span className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+              <span>Liquid Glassmorphism Theme</span>
             </span>
+            <p className="text-[11px] text-[var(--text-muted)]">
+              Frosted acrylic surfaces with live backdrop blur, luminous border highlights, and vibrant spiritual ambient aura.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTheme('glass')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer active:scale-95 ${
+              isGlass
+                ? 'bg-sky-500 text-white shadow-xs'
+                : 'bg-white/10 hover:bg-white/20 border border-sky-400/40 text-sky-300'
+            }`}
+          >
+            {isGlass ? 'Active' : 'Try Glass'}
           </button>
         </div>
 
@@ -755,44 +782,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
-              Profile Photo URL
-            </label>
-            <input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="w-full text-xs p-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-primary)] focus:ring-2 focus:ring-red-500 focus:border-red-500 mb-2"
-            />
-
-            {/* Quick Presets */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-[10px] font-bold text-[var(--text-muted)] shrink-0">
-                Devotional Avatars:
-              </span>
-              {DEVOTIONAL_AVATARS.map((av) => (
-                <button
-                  key={av.label}
-                  type="button"
-                  onClick={() => setAvatarUrl(av.url)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-medium transition shrink-0 ${
-                    avatarUrl === av.url
-                      ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-500 text-amber-900 dark:text-amber-200 font-bold'
-                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <img
-                    src={av.url}
-                    alt={av.label}
-                    className="w-4 h-4 rounded-full object-cover"
-                  />
-                  <span>{av.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Profile Photo directly from Gallery or Camera */}
+          <ImageGalleryPicker
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            label="Profile Photo / Avatar"
+            helperText="Add directly from your device photo gallery or take a new picture"
+            shape="circle"
+            presets={DEVOTIONAL_AVATARS}
+          />
 
           {/* Contact privacy toggle */}
           <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-[var(--border-default)] rounded-2xl">
@@ -947,6 +945,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onOpenAuth, onOpenJoin
         onCallPhone={(phone) => {
           window.location.href = `tel:${phone}`;
         }}
+      />
+
+      {/* THEME SELECTOR MODAL */}
+      <ThemeSelectorModal
+        isOpen={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
       />
     </div>
   );

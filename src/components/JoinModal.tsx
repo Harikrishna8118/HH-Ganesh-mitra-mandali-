@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, UserPlus, CheckCircle, ShieldCheck, Phone, MapPin, Upload } from 'lucide-react';
 import { submitJoinRequest } from '../services/mandaliService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { ImageGalleryPicker } from './ImageGalleryPicker.tsx';
 
 interface JoinModalProps {
   isOpen: boolean;
@@ -144,19 +145,14 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onSuccess
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Profile Photo URL (Optional)
-                </label>
-                <input
-                  type="url"
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="https://example.com/photo.jpg"
-                  enterKeyHint="done"
-                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                />
-              </div>
+              {/* Profile Photo from Gallery or Camera */}
+              <ImageGalleryPicker
+                value={photoUrl}
+                onChange={setPhotoUrl}
+                label="Profile Photo (Optional)"
+                helperText="Upload your photo directly from your device gallery or camera"
+                shape="circle"
+              />
 
               {/* Public Directory Consent Checkbox */}
               <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2">

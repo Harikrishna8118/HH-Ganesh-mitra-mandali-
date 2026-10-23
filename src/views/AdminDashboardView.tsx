@@ -23,7 +23,9 @@ import {
   Send,
   BellRing,
   HardDrive,
+  MessageCircle,
 } from 'lucide-react';
+import { openDialer, openWhatsApp } from '../utils/phoneUtils.ts';
 import {
   approveJoinRequest,
   rejectJoinRequest,
@@ -38,6 +40,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { GaneshLogo } from '../components/GaneshLogo.tsx';
 import { ConfirmModal } from '../components/ConfirmModal.tsx';
+import { ImageGalleryPicker } from '../components/ImageGalleryPicker.tsx';
 import type {
   AppSettings,
   MemberProfile,
@@ -532,11 +535,36 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                       </div>
                     )}
                     <div className="space-y-0.5">
-                      <h3 className="text-sm font-bold text-slate-900">{req.fullName}</h3>
-                      <p className="text-xs text-slate-600 font-mono flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        +91 {req.mobileNumber}
-                      </p>
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="text-xs text-slate-700 font-mono font-bold flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          +91 {req.mobileNumber}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => openDialer(req.mobileNumber, e)}
+                          className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                          title="Open Phone Dialpad"
+                        >
+                          <Phone className="w-2.5 h-2.5" />
+                          <span>Dial</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) =>
+                            openWhatsApp(
+                              req.mobileNumber,
+                              `Namaskara ${req.fullName}, regarding your membership application for Shri Ganesh Mitra Mandali...`,
+                              e
+                            )
+                          }
+                          className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 border border-emerald-300 transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                          title="Open WhatsApp Chat"
+                        >
+                          <MessageCircle className="w-2.5 h-2.5 text-emerald-700" />
+                          <span>WhatsApp</span>
+                        </button>
+                      </div>
                       {req.villageAddress && (
                         <p className="text-[11px] text-slate-500 flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-slate-400" />
@@ -599,7 +627,35 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-900">{m.fullName}</h4>
-                      <p className="text-xs text-slate-500 font-mono">+91 {m.mobileNumber}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-slate-600 font-mono font-medium">+91 {m.mobileNumber}</span>
+                        {m.mobileNumber && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => openDialer(m.mobileNumber, e)}
+                              className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition cursor-pointer"
+                              title={`Dial ${m.fullName}`}
+                            >
+                              <Phone className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) =>
+                                openWhatsApp(
+                                  m.mobileNumber,
+                                  `Namaskara ${m.fullName}, regarding Shri Ganesh Mitra Mandali...`,
+                                  e
+                                )
+                              }
+                              className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition cursor-pointer"
+                              title={`WhatsApp ${m.fullName}`}
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -768,21 +824,14 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Custom Logo Image URL
-              </label>
-              <input
-                type="url"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://example.com/lord-ganesha.jpg (leave empty for default vector emblem)"
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-red-500 font-mono"
-              />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Provide an image link to replace the logo anytime.
-              </span>
-            </div>
+            {/* Mandali Logo / Lord Ganesha Emblem directly from Gallery */}
+            <ImageGalleryPicker
+              value={logoUrl}
+              onChange={setLogoUrl}
+              label="Lord Ganesha Mandali Emblem / Logo"
+              helperText="Upload emblem directly from your device photo gallery (or leave empty for default sacred vector mark)"
+              shape="square"
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

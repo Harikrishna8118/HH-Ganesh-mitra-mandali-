@@ -101,7 +101,87 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false;
+                Uri uri = request.getUrl();
+                if (uri == null) return false;
+
+                String scheme = uri.getScheme();
+                if (scheme != null) {
+                    // Redirect phone call / dial button directly to Android Dialpad
+                    if (scheme.equalsIgnoreCase("tel")) {
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_DIAL, uri);
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception e) {
+                            try {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                                startActivity(intent);
+                                return true;
+                            } catch (Exception ex) {
+                                Toast.makeText(MainActivity.this, "Unable to open phone dialer", Toast.LENGTH_SHORT).show();
+                                return true;
+                            }
+                        }
+                    }
+
+                    // Redirect WhatsApp protocol directly to WhatsApp app
+                    if (scheme.equalsIgnoreCase("whatsapp")) {
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show();
+                            return true;
+                        }
+                    }
+
+                    // Handle other standard mobile actions (SMS, Mailto)
+                    if (scheme.equalsIgnoreCase("sms") || scheme.equalsIgnoreCase("mailto")) {
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception e) {
+                            return true;
+                        }
+                    }
+
+                    // Handle WhatsApp web links (wa.me, api.whatsapp.com, web.whatsapp.com)
+                    String host = uri.getHost();
+                    if (host != null && (host.equalsIgnoreCase("wa.me") || host.equalsIgnoreCase("api.whatsapp.com") || host.contains("whatsapp.com"))) {
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                            intent.setPackage("com.whatsapp");
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception e) {
+                            // If package com.whatsapp is not found, try generic view or browser
+                            try {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                                startActivity(intent);
+                                return true;
+                            } catch (Exception ex) {
+                                Toast.makeText(MainActivity.this, "WhatsApp is not installed", Toast.LENGTH_SHORT).show();
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                // If loading local app assets, keep inside WebView
+                if (uri.toString().startsWith("https://appassets.androidplatform.net")) {
+                    return false;
+                }
+
+                // Open external web links in device browser
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    startActivity(intent);
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
             }
         });
 

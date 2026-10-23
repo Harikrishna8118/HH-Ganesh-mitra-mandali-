@@ -29,6 +29,7 @@ import {
 import type { MemberProfile, MemberStatus } from '../types.ts';
 import { updateMemberStatus } from '../services/mandaliService.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { openDialer, openWhatsApp } from '../utils/phoneUtils.ts';
 
 interface MemberDetailModalProps {
   member: MemberProfile | null;
@@ -345,6 +346,37 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                   <Shield className="w-2.5 h-2.5" />
                   <span>{member.role === 'admin' ? 'Committee Admin' : 'Mandali Member'}</span>
                 </span>
+
+                {canViewPhone && member.mobileNumber && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => openDialer(member.mobileNumber!, e)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-2.5 py-0.5 rounded-full transition shadow-xs cursor-pointer"
+                      title="Open Phone Dialpad"
+                    >
+                      <Phone className="w-3 h-3" />
+                      <span>Dial</span>
+                    </button>
+                    {cleanPhone.length >= 10 && (
+                      <button
+                        type="button"
+                        onClick={(e) =>
+                          openWhatsApp(
+                            member.mobileNumber!,
+                            `Namaskara ${member.fullName}, regarding Shri Ganesh Mitra Mandali H. Hosahalli...`,
+                            e
+                          )
+                        }
+                        className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 px-2.5 py-0.5 rounded-full transition shadow-xs cursor-pointer"
+                        title="Chat on WhatsApp"
+                      >
+                        <MessageCircle className="w-3 h-3 text-emerald-600" />
+                        <span>WhatsApp</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -523,25 +555,31 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                       <Copy className="w-3.5 h-3.5" />
                     )}
                   </button>
-                  <a
-                    href={`tel:${member.mobileNumber}`}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition"
+                  <button
+                    type="button"
+                    onClick={(e) => openDialer(member.mobileNumber!, e)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
+                    title="Redirect to Phone Dialpad"
                   >
-                    <Phone className="w-3 h-3" />
-                    <span>Call</span>
-                  </a>
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Dial</span>
+                  </button>
                   {cleanPhone.length >= 10 && (
-                    <a
-                      href={`https://wa.me/91${cleanPhone.slice(-10)}?text=${encodeURIComponent(
-                        `Namaskara ${member.fullName}, regarding Shri Ganesh Mitra Mandali H. Hosahalli...`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs transition"
+                    <button
+                      type="button"
+                      onClick={(e) =>
+                        openWhatsApp(
+                          member.mobileNumber!,
+                          `Namaskara ${member.fullName}, regarding Shri Ganesh Mitra Mandali H. Hosahalli...`,
+                          e
+                        )
+                      }
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 border border-emerald-300 font-bold text-xs transition cursor-pointer"
+                      title="Open WhatsApp Chat"
                     >
-                      <MessageCircle className="w-3 h-3 text-emerald-700" />
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
                       <span>WhatsApp</span>
-                    </a>
+                    </button>
                   )}
                 </div>
               ) : (
